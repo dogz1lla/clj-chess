@@ -8,7 +8,7 @@
       (t/is (= #{[2, 2] [4, 2]} (let [pawn    {:piece :pawn :color :white :pos [3, 3]}
                                       other   {:piece :pawn :color :black :pos [2, 2]}
                                       another {:piece :pawn :color :black :pos [4, 2]}
-                                      state   {:white [pawn] :black [other another] :move-history [pawn]}]
+                                      state   {:board {[3 3] pawn [2 2] other [4 2] another} :history [pawn]}]
                                     (a/attacks pawn state)))))))
 
 (t/run-tests)

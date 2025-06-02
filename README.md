@@ -22,4 +22,11 @@ Chess implementation in clojure. Game rendering via [quil](https://github.com/qu
 - [x] add attacks
 - [x] add capturing the piece
 - [x] combine drawing attacks and moves in one let
-- [ ] reconsider how the state works
+- [x] reconsider how the state works
+- [ ] add king
+- [ ] add rook
+- [ ] add bishop
+- [ ] add knight
+- [ ] add queen
+- [ ] implement en-passant
+- [ ] implement castling
