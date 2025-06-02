@@ -52,6 +52,12 @@
                         :turn :white
                         :history []})
 
+(defn init-state []
+  {:board (->> (init-board) init-pawns)
+   :turn :white
+   :history []
+   :captured []})
+
 (comment
   (init-board)
   (->> (init-board) init-pawns))

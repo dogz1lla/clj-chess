@@ -8,8 +8,6 @@
 ; on each turn a player can
 ;   - move a piece to a valid square
 ;   - capture a piece
-;
-; TODO
 (ns chess.main
   (:require [clojure.set :as s]
             [clojure.core.async :as async]
@@ -19,14 +17,6 @@
             [chess.attacks :as attacks]))
 
 (def pieces [:pawn :rook :queen :king :knight :bishop])
-
-
-(defn move-piece [{:keys [color pos] :as p} new-pos {:keys [white black move-history] :as state}]
-  (let [ally-pieces (get state color)
-        moved (assoc p :pos new-pos)
-        new-ally-pieces (mapv (fn [piece] (if (= p piece) (assoc piece :pos new-pos) piece)) ally-pieces)
-        new-state (assoc (assoc state color new-ally-pieces) :move-history (conj move-history moved))]
-    new-state))
 
 
 ;--------------------------------------------------------------------------------------------------
@@ -70,24 +60,20 @@
   [x0 y0 r piece color]
   (let [im (color (piece (q/state :image)))]
     ; check if image is loaded using function loaded?
-    (when (q/loaded? im) (q/image im x0 y0 r r)))
-  #_(q/ellipse x0 y0 r r))
+    (when (q/loaded? im) (q/image im x0 y0 r r))))
 
-(defn grabbed-piece? [{:keys [white black]} mouse-x mouse-y a r]
-  (let [all-pieces (into [] (concat white black))
-        piece-positions (map :pos all-pieces)
-        centers (for [[i j] piece-positions
-                      :let [I (* a (dec i)) J (* a (dec j))]]
-                  [(+ (* 0.5 a) I) (+ (* 0.5 a) J)])
-        dist2 (fn [[x1 y1] [x2 y2]]
-                (let [dx  (- x2 x1)
-                      dy  (- y2 y1)
-                      dx2 (* dx dx)
-                      dy2 (* dy dy)]
-                  (+ dx2 dy2)))
-        close-enough? (fn [c] (< (dist2 c [mouse-x mouse-y]) (* r r)))
-        grabbed-piece-idx (first (keep-indexed #(when %2 %1) (map close-enough? centers)))]
-    (when grabbed-piece-idx (nth all-pieces grabbed-piece-idx))))
+(defn canvas-pos->cell-coord [x y a]
+  (let [max-x (* 8 a)
+        max-y max-x
+        x-in-bounds? (and (< 0 x) (<= x max-x))
+        y-in-bounds? (and (< 0 y) (<= y max-y))]
+    [(if x-in-bounds? (inc (quot x a)) nil)
+     (if y-in-bounds? (inc (quot y a)) nil)]))
+
+(defn grabbed-piece? [state mouse-x mouse-y a r]
+  (let [board (:board state)
+        square (canvas-pos->cell-coord mouse-x mouse-y a)]
+    (get board square)))
 
 (defn draw-chess-board [a]
   (let [cell-coords (for [i (range 8) j (range 8)
@@ -96,8 +82,10 @@
                       [I J])]
     (doseq [[x y] cell-coords] (chess-square x y a))))
 
-(defn draw-chess-pieces [{:keys [white black]} selected-piece a]
-  (let [all-pieces (into [] (concat white black))
+(defn draw-chess-pieces [state a]
+  (let [board (:board state)
+        occupied-squares (filter second board)  ; when the value for the key is non-nil
+        all-pieces (map second occupied-squares)
         piece-types (map :piece all-pieces)
         piece-colors (map :color all-pieces)
         piece-positions (map :pos all-pieces)
@@ -113,21 +101,10 @@
   (let [cell-coords (for [[i j] attack-list :let [I (* a (dec i)) J (* a (dec j))]] [I J])]
     (doseq [[x y] cell-coords] (attack-square x y a))))
 
-(defn mouse-pos->cell-coord [a]
-  (let [mouse-x (q/mouse-x)
-        mouse-y (q/mouse-y)
-        max-x (* 8 a)
-        max-y max-x
-        x-in-bounds? (and (< 0 mouse-x) (<= mouse-x max-x))
-        y-in-bounds? (and (< 0 mouse-y) (<= mouse-y max-y))]
-    [(if x-in-bounds? (inc (quot mouse-x a)) nil)
-     (if y-in-bounds? (inc (quot mouse-y a)) nil)]))
-
 (def piece-selected? (atom nil))
 (def selection-cooldown? (atom false))
 (def cell-size 100)
-;(def game-state (atom state/test-game-state))
-(def game-state (atom state/initial-state))
+(def game-state (atom (state/init-state)))
 
 (defn draw
   "quil draw function."
@@ -156,13 +133,17 @@
           @piece-selected?
           (not @selection-cooldown?)
           (= :left (q/mouse-button)))
-    (let [square (mouse-pos->cell-coord cell-size)
+    (let [square (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size)
           possible-moves (moves/moves @piece-selected? @game-state)  ; it is a set of vectors
-          possible-attacks (attacks/attacks @piece-selected? @game-state)]  ; it is a set of vectors
+          possible-attacks (attacks/attacks @piece-selected? @game-state)  ; it is a set of vectors
+          start (:pos @piece-selected?)]
       (if (possible-attacks square)  ; if can attack -> attack!
-        (reset! game-state (attacks/attack! square @piece-selected? @game-state))
+        (do
+          (println (attacks/attack! square @piece-selected? @game-state))
+          (reset! game-state (attacks/attack! square @piece-selected? @game-state)))
         (when (possible-moves square)  ; else if can move -> move!
-          (reset! game-state (move-piece @piece-selected? square @game-state)))))
+          ; (reset! game-state (move-piece @piece-selected? square @game-state))
+          (reset! game-state (moves/move! start square @game-state)))))
     (reset! piece-selected? nil))
 
   ; grab a piece by clicking on it
@@ -185,12 +166,12 @@
     (reset! piece-selected? nil))
 
   ; highlight the square on hover
-  (let [[x y] (mouse-pos->cell-coord cell-size)]
+  (let [[x y] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size)]
     (when (and x y)
       (move-square (* cell-size (dec x)) (* cell-size (dec y)) cell-size)))
 
   ; draw the chess pieces
-  (draw-chess-pieces @game-state @piece-selected? cell-size)
+  (draw-chess-pieces @game-state cell-size)
 
   ; dev monitoring
   (doseq [[ind capt fn] [[0 "button" q/mouse-button]
@@ -202,7 +183,7 @@
                          [4 "grab" (fn [] (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35))]
                          [5 "moves" (fn [] (when @piece-selected? (moves/moves @piece-selected? @game-state)))]
                          [6 "attacks" (fn [] (when @piece-selected? (attacks/attacks @piece-selected? @game-state)))]
-                         [7 "square" (fn [] (mouse-pos->cell-coord cell-size))]]]
+                         [7 "square" (fn [] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size))]]]
     (q/text (str capt " " (fn)) 10 (+ (* 20 ind) 20))))
   
 
@@ -221,11 +202,13 @@
   (attacks/attacks {:piece :pawn :pos [1, 3] :color :white} state/test-game-state)
   (attacks/attacks {:piece :pawn :pos [5, 3] :color :white} state/test-game-state)
   (for [i (range 8) j (range 8) :let [I (* 100 i) J (* 100 j)] :when (or (even? i) (even? j))] [I J])
-  (grabbed-piece? state/test-game-state 150 350 100 35)
+  ; (grabbed-piece? state/test-game-state 150 350 100 35)
+  (grabbed-piece? (state/init-state) 50 150 100 35)
   (swap! piece-selected? not)
   (deref piece-selected?)
   (quot 0 100)
   (keep-indexed #(when %2 %1) [true true true false true])
   (nth [] 3)
-  (move-piece {:piece :pawn :pos [4, 2] :color :white :leap true} [1 1] state/test-game-state))
+  (filterv #(= :white (:color %)) (map second (:board (state/init-state)))))
+  
   

@@ -2,12 +2,14 @@
   "Calculate possible move squares for each piece type. The move squares depend on the position of
   the piece in question and the positions of all the other pieces.
   Important: moves are different from attacks!"
-  (:require [clojure.set :as s]))
+  (:require [clojure.set :as s]
+            [chess.state :as state]))
 
 
 (defmulti moves :piece)
 
-(defmethod moves :pawn [{:keys [pos color]} {:keys [white black]}]
+
+(defmethod moves :pawn [{:keys [pos color]} {:keys [board]}]
   (let [[x y] pos
         step (case color
                :white (max 1 (dec y))
@@ -21,7 +23,8 @@
         leap-move   (case color
                       :white (if (= y 7) #{[x leap]} #{})
                       :black (if (= y 2) #{[x leap]} #{}))
-        all-pieces (concat white black)
+        occupied-squares (filter second board)  ; when the value for the key is non-nil
+        all-pieces (map second occupied-squares)
         blocked? (some identity  ; why not or? see https://stackoverflow.com/a/2969551
                    (map
                      (fn [{:keys [pos]}]
@@ -41,3 +44,23 @@
                    (s/union ideal-moves leap-move)))]
     result))
 
+(defn move! [start finish {:keys [board history] :as state}]
+  (let [piece (get board start)
+        moved-piece (assoc piece :pos finish)
+        new-board (-> board
+                      (assoc start nil)
+                      (assoc finish moved-piece))]
+     (-> state
+         (assoc :board new-board)
+         (assoc :history (conj history piece)))))
+    
+
+(comment
+  (let [state (state/init-state)
+        pos [1 2]
+        piece (get (:board state) pos)]
+    (moves piece state))
+  (let [start [1 2]
+        finish [1 4]
+        state (state/init-state)]
+    (move! start finish state)))
