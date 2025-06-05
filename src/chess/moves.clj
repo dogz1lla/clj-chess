@@ -6,6 +6,16 @@
             [chess.state :as state]))
 
 
+(defn move! [start finish {:keys [board history] :as state}]
+  (let [piece (get board start)
+        moved-piece (assoc piece :pos finish)
+        new-board (-> board
+                      (assoc start nil)
+                      (assoc finish moved-piece))]
+     (-> state
+         (assoc :board new-board)
+         (assoc :history (conj history piece)))))
+
 (defmulti moves :piece)
 
 
@@ -54,15 +64,33 @@
         occupied-squares (set (map first (filter second board)))]  ; when the value for the key is non-nil
     (s/difference ideal-moves occupied-squares)))
 
-(defn move! [start finish {:keys [board history] :as state}]
-  (let [piece (get board start)
-        moved-piece (assoc piece :pos finish)
-        new-board (-> board
-                      (assoc start nil)
-                      (assoc finish moved-piece))]
-     (-> state
-         (assoc :board new-board)
-         (assoc :history (conj history piece)))))
+(defmethod moves :rook [{:keys [pos color]} {:keys [board]}]
+  (let [[col row] pos
+        ; opponent-color (case color :white :black :black :white)
+        occupied-squares (->> board
+                              (filter second)
+                              (map first)
+                              set)
+        ; horizontal line
+        horizontal-moves (for [x (range 1 9) :when (not= x col)] [x row])
+        same-row-obstacles (filter #(= row (second %)) occupied-squares)
+        same-row-obstacles-xs (map first same-row-obstacles)
+        to-the-west (filter #(< % col) same-row-obstacles-xs)
+        to-the-east (filter #(< col %) same-row-obstacles-xs)
+        x-min (if (seq to-the-west) (apply max to-the-west) 0)
+        x-max (if (seq to-the-east) (apply min to-the-east) 9)
+        ; vertical line
+        vertical-moves (for [y (range 1 9) :when (not= y row)] [col y])
+        same-col-obstacles (filter #(= col (first %)) occupied-squares)
+        same-col-obstacles-ys (map second same-col-obstacles)
+        to-the-north (filter #(< % row) same-col-obstacles-ys)
+        to-the-south (filter #(< row %) same-col-obstacles-ys)
+        y-min (if (seq to-the-north) (apply max to-the-north) 0)
+        y-max (if (seq to-the-south) (apply min to-the-south) 9)
+        ; filter the moves
+        horizontal-moves (set (filter (fn [[x y]] (and (< x-min x) (< x x-max))) horizontal-moves))
+        vertical-moves (set (filter (fn [[x y]] (and (< y-min y) (< y y-max))) vertical-moves))]
+    (s/union horizontal-moves vertical-moves)))
     
 
 (comment

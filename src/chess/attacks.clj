@@ -2,6 +2,33 @@
   (:require [clojure.set :as s]))
 
 
+(defn attack!
+  "TODO: rewrite the history logic (include start and finish squares too)"
+  [attack-square {:keys [pos color] :as attacking-piece} {:keys [board history captured] :as state}]
+  (let [occupied-squares (filter second board)  ; when the value for the key is non-nil
+        all-pieces (map second occupied-squares)
+        white (filter #(= :white (:color %)) all-pieces)
+        black (filter #(= :black (:color %)) all-pieces)
+        ally-pieces (case color :white white :black black)
+        opponent-color (case color :white :black :black :white)
+        opponent-pieces (case opponent-color :white white :black black)
+        target (->> opponent-pieces (filter (fn [{:keys [pos]}] (= attack-square pos))) first)
+        remaining-opponent-pieces (filterv (fn [p] (not (= target p))) opponent-pieces)
+        remaining-ally-pieces (filterv (fn [p] (not (= attacking-piece p))) ally-pieces)
+        moved-attacking-piece (assoc attacking-piece :pos attack-square)
+        new-board (-> board
+                      (assoc attack-square moved-attacking-piece)
+                      (assoc pos nil))]
+    (println occupied-squares all-pieces)
+    (if target
+      (-> state
+        (assoc :board new-board)
+        (assoc :captured (conj captured target))
+        (assoc :history (conj history attacking-piece)))
+      state)))
+     
+
+
 (defmulti attacks :piece)
 
 (defmethod attacks :pawn [{:keys [pos color]} {:keys [board history] :as state}]
@@ -68,31 +95,30 @@
     (println opponent-occupied-squares)
     (s/intersection all-moves opponent-occupied-squares)))
 
-(defn attack!
-  "TODO: rewrite the history logic (include start and finish squares too)"
-  [attack-square {:keys [pos color] :as attacking-piece} {:keys [board history captured] :as state}]
-  (let [occupied-squares (filter second board)  ; when the value for the key is non-nil
-        all-pieces (map second occupied-squares)
-        white (filter #(= :white (:color %)) all-pieces)
-        black (filter #(= :black (:color %)) all-pieces)
-        ally-pieces (case color :white white :black black)
-        opponent-color (case color :white :black :black :white)
-        opponent-pieces (case opponent-color :white white :black black)
-        target (->> opponent-pieces (filter (fn [{:keys [pos]}] (= attack-square pos))) first)
-        remaining-opponent-pieces (filterv (fn [p] (not (= target p))) opponent-pieces)
-        remaining-ally-pieces (filterv (fn [p] (not (= attacking-piece p))) ally-pieces)
-        moved-attacking-piece (assoc attacking-piece :pos attack-square)
-        new-board (-> board
-                      (assoc attack-square moved-attacking-piece)
-                      (assoc pos nil))]
-    (println occupied-squares all-pieces)
-    (if target
-      (-> state
-        (assoc :board new-board)
-        (assoc :captured (conj captured target))
-        (assoc :history (conj history attacking-piece)))
-      state)))
-     
+(defmethod attacks :rook [{:keys [pos color] :as piece} {:keys [board] :as state}]
+   (let [[col row] pos
+         opponent-color (case color :white :black :black :white)
+         all-pieces (filter second board)
+         occupied-squares (->> all-pieces (map first) set)
+         ; horizontal line
+         same-row-obstacles (filter #(= row (second %)) occupied-squares)
+         same-row-obstacles-xs (map first same-row-obstacles)
+         to-the-west (filter #(< % col) same-row-obstacles-xs)
+         to-the-east (filter #(< col %) same-row-obstacles-xs)
+         x-min (if (seq to-the-west) (apply max to-the-west) 0)
+         x-max (if (seq to-the-east) (apply min to-the-east) 9)
+         ; vertical line
+         same-col-obstacles (filter #(= col (first %)) occupied-squares)
+         same-col-obstacles-ys (map second same-col-obstacles)
+         to-the-north (filter #(< % row) same-col-obstacles-ys)
+         to-the-south (filter #(< row %) same-col-obstacles-ys)
+         y-min (if (seq to-the-north) (apply max to-the-north) 0)
+         y-max (if (seq to-the-south) (apply min to-the-south) 9)
+         ; filter the pieces
+         limiting-squares (set [[x-min row] [x-max row] [col y-min] [col y-max]])
+         opponents-in-the-way (filter (fn [p] (and (= opponent-color (:color p)) (limiting-squares (:pos p)))) (map second all-pieces))]
+      (set (map :pos opponents-in-the-way))))
+
 
 (comment 
   (let [pawn    {:piece :pawn :color :white :pos [3, 3]}
