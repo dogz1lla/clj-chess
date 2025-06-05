@@ -31,8 +31,11 @@
   []
   (clear-screen)
   (q/frame-rate 60)
+  
   (q/set-state! :image {:pawn {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/0/04/Chess_plt60.png")
-                               :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/c/cd/Chess_pdt60.png")}}))
+                               :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/c/cd/Chess_pdt60.png")}
+                        :king {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/3/3b/Chess_klt60.png")
+                               :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/e/e3/Chess_kdt60.png")}}))
 
 (defn chess-square 
   "Draw a single unit piece."

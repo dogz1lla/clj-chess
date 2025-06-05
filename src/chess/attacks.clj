@@ -52,6 +52,22 @@
                               []))]
     (s/union potential-attacks en-passante)))
 
+(defmethod attacks :king [{:keys [pos color] :as piece} {:keys [board] :as state}]
+  (let [[x y] pos
+        dxdy (for [dx [-1 0 1]
+                   dy [-1 0 1]
+                   :when (or (not= 0 dx) (not= 0 dy))] [dx dy])
+        all-moves (mapv (fn [[dx dy]] [(+ x dx) (+ dy y)]) dxdy)
+        all-moves (set (filterv (fn [[xx yy]] (and (pos? xx) (pos? yy))) all-moves))
+        opponent-color (case color :white :black :black :white)
+        opponent-occupied-squares (->> board
+                                       (filter second)
+                                       (filter (fn [[_ p]] (= (:color p) opponent-color)))
+                                       (map first)
+                                       set)]
+    (println opponent-occupied-squares)
+    (s/intersection all-moves opponent-occupied-squares)))
+
 (defn attack!
   "TODO: rewrite the history logic (include start and finish squares too)"
   [attack-square {:keys [pos color] :as attacking-piece} {:keys [board history captured] :as state}]

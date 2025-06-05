@@ -26,10 +26,16 @@
                     :captured-pieces []
                     :move-history []})
 
-(defn init-pawn [pos color]
-  {:piece :pawn :pos pos :color color})
+(defn init-piece [kind pos color]
+  {:piece kind :pos pos :color color})
 
-(defn init-pawns [{:keys [board] :as state}]
+(defn init-pawn [pos color]
+  (init-piece :pawn pos color))
+
+(defn init-king [pos color]
+  (init-piece :king pos color))
+
+(defn init-pawns [board]
   (let [white-pos (for [x (range 1 9)] [x 7])
         black-pos (for [x (range 1 9)] [x 2])
         add-pawn (fn [color] (fn [s pos] (assoc s pos (init-pawn pos color))))]
@@ -37,28 +43,30 @@
       (add-pawn :black)
       (reduce
         (add-pawn :white)
-        state
+        board
         white-pos)
       black-pos)))
+
+(defn init-kings [board]
+  (let [white-pos [5 8]
+        black-pos [5 1]]
+    (-> board
+        (assoc white-pos (init-king white-pos :white))
+        (assoc black-pos (init-king black-pos :black)))))
 
 (defn init-board []
   (let [squares (for [col (range 1 9) row (range 1 9)] [col row])
         nils (repeat (count squares) nil)
-        board (zipmap squares nils)
-        board (init-pawns board)]
+        board (zipmap squares nils)]
     board))
 
-(def alternative-state {:board (init-board)
-                        :turn :white
-                        :history []})
-
 (defn init-state []
-  {:board (->> (init-board) init-pawns)
+  {:board (->> (init-board) init-pawns init-kings)
    :turn :white
    :history []
    :captured []})
 
 (comment
   (init-board)
-  (->> (init-board) init-pawns))
+  (init-state))
   

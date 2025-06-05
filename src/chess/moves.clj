@@ -44,6 +44,16 @@
                    (s/union ideal-moves leap-move)))]
     result))
 
+(defmethod moves :king [{:keys [pos color]} {:keys [board]}]
+  (let [[x y] pos
+        dxdy (for [dx [-1 0 1]
+                   dy [-1 0 1]
+                   :when (or (not= 0 dx) (not= 0 dy))] [dx dy])
+        ideal-moves (mapv (fn [[dx dy]] [(+ x dx) (+ dy y)]) dxdy)
+        ideal-moves (set (filterv (fn [[xx yy]] (and (pos? xx) (pos? yy))) ideal-moves))
+        occupied-squares (set (map first (filter second board)))]  ; when the value for the key is non-nil
+    (s/difference ideal-moves occupied-squares)))
+
 (defn move! [start finish {:keys [board history] :as state}]
   (let [piece (get board start)
         moved-piece (assoc piece :pos finish)
@@ -60,7 +70,11 @@
         pos [1 2]
         piece (get (:board state) pos)]
     (moves piece state))
+  (let [state (state/init-state)
+        pos [5 1]
+        piece (get (:board state) pos)]
+      (moves piece state))
   (let [start [1 2]
         finish [1 4]
         state (state/init-state)]
-    (move! start finish state)))
+     (move! start finish state)))
