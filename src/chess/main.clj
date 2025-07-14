@@ -16,8 +16,6 @@
             [chess.moves :as moves]
             [chess.attacks :as attacks]))
 
-(def pieces [:pawn :rook :queen :king :knight :bishop])
-
 
 ;--------------------------------------------------------------------------------------------------
 ; drawing

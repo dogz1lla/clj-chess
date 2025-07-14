@@ -1,6 +1,7 @@
 (ns chess.moves-test
   (:require [clojure.test :as t]
-            [chess.moves :as m]))
+            [chess.moves :as m]
+            [chess.state :as s]))
 
 
 (t/deftest pawn-moves
@@ -42,6 +43,16 @@
     (t/testing "at the edge"
       (t/is (= #{} (let [pawn  {:piece :pawn :pos [1, 8] :color :black}
                          state {:board {[1 8] pawn}}]
-                      (m/moves pawn state)))))))
+                      (m/moves pawn state))))))
+
+  (t/testing "white kings"
+    (t/testing "nobody around"
+      (t/is (= #{[4 5] [6 5] [5 4] [5 6] [4 4] [4 6] [6 4] [6 6]} (let [king {:piece :king :pos [5, 5] :color :white}
+                                                                        state {:board (s/init-board)}]
+                                                                    (m/moves king state)))))
+    (t/testing "nobody around, on the edge"
+      (t/is (= #{[1 1] [1 2] [2 2] [3 2] [3 1]} (let [king {:piece :king :pos [2, 1] :color :white}
+                                                      state {:board (s/init-board)}]
+                                                  (m/moves king state)))))))
 
 (t/run-tests)
