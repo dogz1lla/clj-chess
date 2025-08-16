@@ -38,6 +38,9 @@
 (defn init-rook [pos color]
   (init-piece :rook pos color))
 
+(defn put-piece-on-board [board {:keys [pos] :as piece}]
+  (assoc board pos piece))
+
 (defn init-pawns [board]
   (let [white-pos (for [x (range 1 9)] [x 7])
         black-pos (for [x (range 1 9)] [x 2])
@@ -88,3 +91,5 @@
   (init-board)
   (init-state))
   
+(comment
+  (put-piece-on-board (init-board) (init-pawn [1 1] :white)))

@@ -214,4 +214,3 @@
   (nth [] 3)
   (filterv #(= :white (:color %)) (map second (:board (state/init-state)))))
   
-  
