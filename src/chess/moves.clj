@@ -93,6 +93,29 @@
     (s/union horizontal-moves vertical-moves)))
     
 
+(defmethod moves :bishop [{:keys [pos color]} {:keys [board]}]
+  (let [[col row] pos
+        ; opponent-color (case color :white :black :black :white)
+        occupied-squares (->> board
+                              (filter second)
+                              (map first)
+                              set)
+
+        ; rays (for [i [-1 1] j [-1 1]] [i j])
+        rays [(map (fn [c] [(* c +1) (* c +1)]) (range 1 9))
+              (map (fn [c] [(* c +1) (* c -1)]) (range 1 9))
+              (map (fn [c] [(* c -1) (* c +1)]) (range 1 9))
+              (map (fn [c] [(* c -1) (* c -1)]) (range 1 9))]
+        center-on-piece (fn [ray] (map (fn [[x y]] [(+ x col) (+ y row)]) ray))
+        filter-out-of-bounds (fn [ray] (filter (fn [[x y]] (and (pos? x) (pos? y))) ray))
+        filter-move-rays (fn [ray] (take-while #(not (occupied-squares %)) ray))
+        rays (map center-on-piece rays)
+        rays (map filter-out-of-bounds rays)
+        rays (map filter-move-rays rays)]
+    (set (reduce into [] rays))))
+              
+              
+
 (comment
   (let [state (state/init-state)
         pos [1 2]
@@ -105,4 +128,12 @@
   (let [start [1 2]
         finish [1 4]
         state (state/init-state)]
-     (move! start finish state)))
+     (move! start finish state))
+  (let [state (state/init-state)
+        pos [3 8]
+        piece (get (:board state) pos)]
+      (moves piece state))
+  (for [i [-1 1] j [-1 1]] [i j])
+  (map (fn [c] [(* c 1) (* c 1)]) (range 1 9))
+  (filter (fn [[x y]] (and (pos? x) (pos? y))) (map (fn [c] [(* c 1) (* c 1)]) (range 1 9)))
+  (take-while #(not (#{[5 5] [2 2]} %)) (map (fn [c] [(* c 1) (* c 1)]) (range 1 9))))

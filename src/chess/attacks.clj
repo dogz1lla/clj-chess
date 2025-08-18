@@ -119,6 +119,8 @@
          opponents-in-the-way (filter (fn [p] (and (= opponent-color (:color p)) (limiting-squares (:pos p)))) (map second all-pieces))]
       (set (map :pos opponents-in-the-way))))
 
+; FIXME
+(defmethod attacks :bishop [{:keys [pos color] :as piece} {:keys [board] :as state}] #{})
 
 (comment 
   (let [pawn    {:piece :pawn :color :white :pos [3, 3]}

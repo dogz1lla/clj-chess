@@ -38,6 +38,9 @@
 (defn init-rook [pos color]
   (init-piece :rook pos color))
 
+(defn init-bishop [pos color]
+  (init-piece :bishop pos color))
+
 (defn put-piece-on-board [board {:keys [pos] :as piece}]
   (assoc board pos piece))
 
@@ -65,6 +68,18 @@
         white-pos)
       black-pos)))
 
+(defn init-bishops [board]
+  (let [white-pos [[3 8] [6 8]]
+        black-pos [[3 1] [6 1]]
+        add-bishop (fn [color] (fn [s pos] (assoc s pos (init-bishop pos color))))]
+    (reduce
+      (add-bishop :black)
+      (reduce
+        (add-bishop :white)
+        board
+        white-pos)
+      black-pos)))
+
 (defn init-kings [board]
   (let [white-pos [5 8]
         black-pos [5 1]]
@@ -82,7 +97,8 @@
   {:board (->> (init-board)
                init-pawns
                init-kings
-               init-rooks)
+               init-rooks
+               init-bishops)
    :turn :white
    :history []
    :captured []})
