@@ -119,15 +119,46 @@
          opponents-in-the-way (filter (fn [p] (and (= opponent-color (:color p)) (limiting-squares (:pos p)))) (map second all-pieces))]
       (set (map :pos opponents-in-the-way))))
 
-; FIXME
-(defmethod attacks :bishop [{:keys [pos color] :as piece} {:keys [board] :as state}] #{})
+
+(defmethod attacks :bishop [{:keys [pos color] :as piece} {:keys [board] :as state}]
+  (let [[col row] pos
+        opponent-color (case color :white :black :black :white)
+        occupied-squares (->> board
+                              (filter second)
+                              (map first)
+                              set)
+
+        rays [(map (fn [c] [(* c +1) (* c +1)]) (range 1 9))
+              (map (fn [c] [(* c +1) (* c -1)]) (range 1 9))
+              (map (fn [c] [(* c -1) (* c +1)]) (range 1 9))
+              (map (fn [c] [(* c -1) (* c -1)]) (range 1 9))]
+        center-on-piece (fn [ray] (map (fn [[x y]] [(+ x col) (+ y row)]) ray))
+        filter-out-of-bounds (fn [ray] (filter (fn [[x y]] (and (pos? x) (pos? y))) ray))
+        filter-attack-rays (fn [ray] (first (filter #(occupied-squares %) ray)))
+        filter-opponent-pieces (fn [pos_] (-> board (get pos_) :color (= opponent-color)))
+             
+        rays (map center-on-piece rays)
+        rays (map filter-out-of-bounds rays)
+        rays (map filter-attack-rays rays)
+        rays (remove nil? rays)
+        rays (filter filter-opponent-pieces rays)]
+    (set rays)))
+
 
 (comment 
+  (remove nil? [nil])
+  (some #(when (> % 10) %) [1 5 1 8 1])
+  (first (filter #(> % 10) [1 5 1 8 1]))
   (let [pawn    {:piece :pawn :color :white :pos [3, 3]}
         other   {:piece :pawn :color :black :pos [2, 2]}
         another {:piece :pawn :color :black :pos [4, 2]}
         state   {:board {[3 3] pawn [2 2] other [4 2] another} :history [pawn]}]
     (attacks pawn state))
+  (let [bishop    {:piece :bishop :color :white :pos [3, 3]}
+        other   {:piece :pawn :color :black :pos [4, 4]}
+        another {:piece :pawn :color :black :pos [5, 5]}
+        state   {:board {[3 3] bishop [4 4] other [5 5] another}}]
+    (attacks bishop state))
   (let [pawn    {:piece :pawn :color :white :pos [3, 3]}
         target  {:piece :pawn :color :black :pos [2, 2]}
         another {:piece :pawn :color :black :pos [4, 2]}
