@@ -162,6 +162,9 @@
     (set moves)))
 
 
+(defmethod attacks :queen [{:keys [pos color] :as piece} {:keys [board] :as state}])
+
+
 (comment 
   (remove nil? [nil])
   (some #(when (> % 10) %) [1 5 1 8 1])

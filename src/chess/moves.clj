@@ -129,6 +129,9 @@
     (set moves)))
               
 
+(defmethod moves :queen [{:keys [pos color]} {:keys [board]}] #{})
+
+
 (comment
   (let [state (state/init-state)
         pos [1 2]

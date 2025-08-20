@@ -39,7 +39,9 @@
                         :bishop {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/9/9b/Chess_blt60.png")
                                  :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/8/81/Chess_bdt60.png")}
                         :knight {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/2/28/Chess_nlt60.png")
-                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/f/f1/Chess_ndt60.png")}}))
+                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/f/f1/Chess_ndt60.png")}
+                        :queen  {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/4/49/Chess_qlt60.png")
+                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/a/af/Chess_qdt60.png")}}))
 
 
 (defn chess-square 

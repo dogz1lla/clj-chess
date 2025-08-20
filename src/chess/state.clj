@@ -87,6 +87,18 @@
         white-pos)
       black-pos)))
 
+(defn init-queens [board]
+  (let [white-pos [[4 8]]
+        black-pos [[4 1]]
+        add-queen (fn [color] (fn [s pos] (assoc s pos (init-piece :queen pos color))))]
+    (reduce
+      (add-queen :black)
+      (reduce
+        (add-queen :white)
+        board
+        white-pos)
+      black-pos)))
+
 (defn init-board []
   (let [squares (for [col (range 1 9) row (range 1 9)] [col row])
         nils (repeat (count squares) nil)
@@ -99,7 +111,8 @@
                init-kings
                init-rooks
                init-bishops
-               init-knights)
+               init-knights
+               init-queens)
    :turn :white
    :history []
    :captured []})
