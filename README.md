@@ -3,7 +3,7 @@
 Chess implementation in clojure. Game rendering via [quil](https://github.com/quil/quil)
 
 # Currently implemented
-- moving/attacking for pawns
+- moving/attacking for pawns, rooks, bishops, kings
 
 # TODO
 - [x] pawn moves
@@ -25,7 +25,7 @@ Chess implementation in clojure. Game rendering via [quil](https://github.com/qu
 - [x] reconsider how the state works
 - [x] add king
 - [x] add rook
-- [ ] add bishop
+- [x] add bishop
 - [ ] add knight
 - [ ] add queen
 - [ ] implement en-passant
