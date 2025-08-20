@@ -26,78 +26,18 @@
                     :captured-pieces []
                     :move-history []})
 
-(defn init-piece [kind pos color]
-  {:piece kind :pos pos :color color})
-
 (defn put-piece-on-board [board {:keys [pos] :as piece}]
   (assoc board pos piece))
 
-(defn init-pawns [board]
-  (let [white-pos (for [x (range 1 9)] [x 7])
-        black-pos (for [x (range 1 9)] [x 2])
-        add-pawn (fn [color] (fn [s pos] (assoc s pos (init-piece :pawn pos color))))]
-    (reduce
-      (add-pawn :black)
+(defn init-pieces [board {:keys [kind white black]}]
+  (let [add-piece (fn [color] (fn [s pos] (assoc s pos {:piece kind :pos pos :color color})))]
       (reduce
-        (add-pawn :white)
-        board
-        white-pos)
-      black-pos)))
-
-(defn init-rooks [board]
-  (let [white-pos [[1 8] [8 8]]
-        black-pos [[1 1] [8 1]]
-        add-rook (fn [color] (fn [s pos] (assoc s pos (init-piece :rook pos color))))]
-    (reduce
-      (add-rook :black)
-      (reduce
-        (add-rook :white)
-        board
-        white-pos)
-      black-pos)))
-
-(defn init-bishops [board]
-  (let [white-pos [[3 8] [6 8]]
-        black-pos [[3 1] [6 1]]
-        add-bishop (fn [color] (fn [s pos] (assoc s pos (init-piece :bishop pos color))))]
-    (reduce
-      (add-bishop :black)
-      (reduce
-        (add-bishop :white)
-        board
-        white-pos)
-      black-pos)))
-
-(defn init-kings [board]
-  (let [white-pos [5 8]
-        black-pos [5 1]]
-    (-> board
-        (assoc white-pos (init-piece :king white-pos :white))
-        (assoc black-pos (init-piece :king black-pos :black)))))
-
-(defn init-knights [board]
-  (let [white-pos [[2 8] [7 8]]
-        black-pos [[2 1] [7 1]]
-        add-knight (fn [color] (fn [s pos] (assoc s pos (init-piece :knight pos color))))]
-    (reduce
-      (add-knight :black)
-      (reduce
-        (add-knight :white)
-        board
-        white-pos)
-      black-pos)))
-
-(defn init-queens [board]
-  (let [white-pos [[4 8]]
-        black-pos [[4 1]]
-        add-queen (fn [color] (fn [s pos] (assoc s pos (init-piece :queen pos color))))]
-    (reduce
-      (add-queen :black)
-      (reduce
-        (add-queen :white)
-        board
-        white-pos)
-      black-pos)))
+        (add-piece :black)
+        (reduce
+          (add-piece :white)
+          board
+          white)
+        black)))
 
 (defn init-board []
   (let [squares (for [col (range 1 9) row (range 1 9)] [col row])
@@ -106,13 +46,13 @@
     board))
 
 (defn init-state []
-  {:board (->> (init-board)
-               init-pawns
-               init-kings
-               init-rooks
-               init-bishops
-               init-knights
-               init-queens)
+  {:board (-> (init-board)
+              (init-pieces {:kind :king   :white [[5 8]]       :black [[5 1]]})
+              (init-pieces {:kind :queen  :white [[4 8]]       :black [[4 1]]})
+              (init-pieces {:kind :rook   :white [[1 8] [8 8]] :black [[1 1] [8 1]]})
+              (init-pieces {:kind :bishop :white [[3 8] [6 8]] :black [[3 1] [6 1]]})
+              (init-pieces {:kind :knight :white [[2 8] [7 8]] :black [[2 1] [7 1]]})
+              (init-pieces {:kind :pawn   :white (for [x (range 1 9)] [x 7]) :black (for [x (range 1 9)] [x 2])}))
    :turn :white
    :history []
    :captured []})
