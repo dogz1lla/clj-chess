@@ -114,6 +114,19 @@
         rays (map filter-move-rays rays)]
     (set (reduce into [] rays))))
               
+
+(defmethod moves :knight [{:keys [pos color]} {:keys [board]}]
+  (let [[col row] pos
+        occupied-squares (->> board
+                              (filter second)
+                              (map first)
+                              set)
+        ds (for [i [-1 1 -2 2] j [-1 1 -2 2] :when (not= (abs i) (abs j))] [i j])
+        moves (->> ds
+                   (map (fn [[dx dy]] [(+ col dx) (+ row dy)]))
+                   (filter (fn [[x y]] (and (pos? x) (pos? y) (< x 9) (< y 9))))
+                   (filter (fn [square] (not (occupied-squares square)))))]
+    (set moves)))
               
 
 (comment
@@ -133,7 +146,7 @@
         pos [3 8]
         piece (get (:board state) pos)]
       (moves piece state))
-  (for [i [-1 1] j [-1 1]] [i j])
+  (for [i [-1 1 -2 2] j [-1 1 -2 2] :when (not= (abs i) (abs j))] [i j])
   (map (fn [c] [(* c 1) (* c 1)]) (range 1 9))
   (filter (fn [[x y]] (and (pos? x) (pos? y))) (map (fn [c] [(* c 1) (* c 1)]) (range 1 9)))
   (take-while #(not (#{[5 5] [2 2]} %)) (map (fn [c] [(* c 1) (* c 1)]) (range 1 9))))

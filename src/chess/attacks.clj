@@ -145,6 +145,23 @@
     (set rays)))
 
 
+(defmethod attacks :knight [{:keys [pos color] :as piece} {:keys [board] :as state}]
+  (let [[col row] pos
+        opponent-color (case color :white :black :black :white)
+        occupied-squares (->> board
+                              (filter second)
+                              (map first)
+                              set)
+        opponent-squares (filter (fn [square] (= opponent-color (get-in board [square :color]))) occupied-squares)
+        opponent-squares (set opponent-squares)
+        ds (for [i [-1 1 -2 2] j [-1 1 -2 2] :when (not= (abs i) (abs j))] [i j])
+        moves (->> ds
+                   (map (fn [[dx dy]] [(+ col dx) (+ row dy)]))
+                   (filter (fn [[x y]] (and (pos? x) (pos? y) (< x 9) (< y 9))))
+                   (filter (fn [square] (opponent-squares square))))]
+    (set moves)))
+
+
 (comment 
   (remove nil? [nil])
   (some #(when (> % 10) %) [1 5 1 8 1])

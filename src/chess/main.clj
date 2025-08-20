@@ -37,7 +37,10 @@
                         :rook   {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/5/5c/Chess_rlt60.png")
                                  :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/a/a0/Chess_rdt60.png")}
                         :bishop {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/9/9b/Chess_blt60.png")
-                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/8/81/Chess_bdt60.png")}}))
+                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/8/81/Chess_bdt60.png")}
+                        :knight {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/2/28/Chess_nlt60.png")
+                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/f/f1/Chess_ndt60.png")}}))
+
 
 (defn chess-square 
   "Draw a single unit piece."

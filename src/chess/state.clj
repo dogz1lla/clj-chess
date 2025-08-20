@@ -29,25 +29,13 @@
 (defn init-piece [kind pos color]
   {:piece kind :pos pos :color color})
 
-(defn init-pawn [pos color]
-  (init-piece :pawn pos color))
-
-(defn init-king [pos color]
-  (init-piece :king pos color))
-
-(defn init-rook [pos color]
-  (init-piece :rook pos color))
-
-(defn init-bishop [pos color]
-  (init-piece :bishop pos color))
-
 (defn put-piece-on-board [board {:keys [pos] :as piece}]
   (assoc board pos piece))
 
 (defn init-pawns [board]
   (let [white-pos (for [x (range 1 9)] [x 7])
         black-pos (for [x (range 1 9)] [x 2])
-        add-pawn (fn [color] (fn [s pos] (assoc s pos (init-pawn pos color))))]
+        add-pawn (fn [color] (fn [s pos] (assoc s pos (init-piece :pawn pos color))))]
     (reduce
       (add-pawn :black)
       (reduce
@@ -59,7 +47,7 @@
 (defn init-rooks [board]
   (let [white-pos [[1 8] [8 8]]
         black-pos [[1 1] [8 1]]
-        add-rook (fn [color] (fn [s pos] (assoc s pos (init-rook pos color))))]
+        add-rook (fn [color] (fn [s pos] (assoc s pos (init-piece :rook pos color))))]
     (reduce
       (add-rook :black)
       (reduce
@@ -71,7 +59,7 @@
 (defn init-bishops [board]
   (let [white-pos [[3 8] [6 8]]
         black-pos [[3 1] [6 1]]
-        add-bishop (fn [color] (fn [s pos] (assoc s pos (init-bishop pos color))))]
+        add-bishop (fn [color] (fn [s pos] (assoc s pos (init-piece :bishop pos color))))]
     (reduce
       (add-bishop :black)
       (reduce
@@ -84,8 +72,20 @@
   (let [white-pos [5 8]
         black-pos [5 1]]
     (-> board
-        (assoc white-pos (init-king white-pos :white))
-        (assoc black-pos (init-king black-pos :black)))))
+        (assoc white-pos (init-piece :king white-pos :white))
+        (assoc black-pos (init-piece :king black-pos :black)))))
+
+(defn init-knights [board]
+  (let [white-pos [[2 8] [7 8]]
+        black-pos [[2 1] [7 1]]
+        add-knight (fn [color] (fn [s pos] (assoc s pos (init-piece :knight pos color))))]
+    (reduce
+      (add-knight :black)
+      (reduce
+        (add-knight :white)
+        board
+        white-pos)
+      black-pos)))
 
 (defn init-board []
   (let [squares (for [col (range 1 9) row (range 1 9)] [col row])
@@ -98,7 +98,8 @@
                init-pawns
                init-kings
                init-rooks
-               init-bishops)
+               init-bishops
+               init-knights)
    :turn :white
    :history []
    :captured []})
@@ -108,4 +109,4 @@
   (init-state))
   
 (comment
-  (put-piece-on-board (init-board) (init-pawn [1 1] :white)))
+  (put-piece-on-board (init-board) (init-piece :pawn [1 1] :white)))
