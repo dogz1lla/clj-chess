@@ -149,7 +149,7 @@
           start (:pos @piece-selected?)]
       (if (possible-attacks square)  ; if can attack -> attack!
         (do
-          (println (attacks/attack! square @piece-selected? @game-state))
+          ; (println (attacks/attack! square @piece-selected? @game-state))
           (reset! game-state (attacks/attack! square @piece-selected? @game-state)))
         (when (possible-moves square)  ; else if can move -> move!
           ; (reset! game-state (move-piece @piece-selected? square @game-state))

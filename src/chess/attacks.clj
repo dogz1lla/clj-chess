@@ -162,7 +162,36 @@
     (set moves)))
 
 
-(defmethod attacks :queen [{:keys [pos color] :as piece} {:keys [board] :as state}])
+(defmethod attacks :queen [{:keys [pos color] :as piece} {:keys [board] :as state}]
+  (let [[col row] pos
+        opponent-color (case color :white :black :black :white)
+        occupied-squares (->> board
+                              (filter second)
+                              ; (filter #(not= color (:color (second %))))
+                              (map first)
+                              set)
+        rays  [(for [c (range 1 9) :let [ci (* c -1) cj (* c -1)]]  [(+ col ci) (+ row cj)])
+               (for [c (range 1 9) :let [ci (* c +1) cj (* c -1)]]  [(+ col ci) (+ row cj)])
+               (for [c (range 1 9) :let [ci (* c -1) cj (* c +1)]]  [(+ col ci) (+ row cj)])
+               (for [c (range 1 9) :let [ci (* c +1) cj (* c +1)]]  [(+ col ci) (+ row cj)])]
+        cross [(for [i (range (inc col) 9)]    [i row])
+               (for [i (range (dec col) 0 -1)] [i row])
+               (for [i (range (inc row) 9)]    [col i])
+               (for [i (range (dec row) 0 -1)] [col i])]
+
+        filter-out-of-bounds (fn [ray] (filter #(and (pos? (first %)) (pos? (second %))) ray))
+        filter-attack-rays (fn [ray] (first (filter #(occupied-squares %) ray)))
+        filter-opponent-pieces (fn [pos_] (-> board (get pos_) :color (= opponent-color)))
+
+        rays  (map filter-out-of-bounds rays)
+        rays  (map filter-attack-rays rays)
+        rays  (remove nil? rays)
+        rays  (filter filter-opponent-pieces rays)
+        cross (map filter-out-of-bounds cross)
+        cross (map filter-attack-rays cross)
+        cross (remove nil? cross)
+        cross (filter filter-opponent-pieces cross)]
+    (set (vec (concat rays cross)))))
 
 
 (comment 
@@ -184,4 +213,9 @@
         another {:piece :pawn :color :black :pos [4, 2]}
         state   {:board {[3 3] pawn [2 2] target [4 2] another} :history [pawn] :captured []}
         attack-square [2 2]]
-    (attack! attack-square pawn state)))
+    (attack! attack-square pawn state))
+  (let [queen   {:piece :queen :color :white :pos [3, 3]}
+        other   {:piece :pawn :color :black :pos [2, 2]}
+        another {:piece :pawn :color :black :pos [4, 3]}
+        state   {:board {[3 3] queen [2 2] other [4 3] another}}]
+    (attacks queen state)))

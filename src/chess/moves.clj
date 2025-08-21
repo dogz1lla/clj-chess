@@ -129,8 +129,30 @@
     (set moves)))
               
 
-(defmethod moves :queen [{:keys [pos color]} {:keys [board]}] #{})
+(defmethod moves :queen [{:keys [pos color]} {:keys [board]}]
+  (let [[col row] pos
+        occupied-squares (->> board
+                              (filter second)
+                              (map first)
+                              set)
+        rays  [(for [c (range 1 9) :let [ci (* c -1) cj (* c -1)]]  [(+ col ci) (+ row cj)])
+               (for [c (range 1 9) :let [ci (* c +1) cj (* c -1)]]  [(+ col ci) (+ row cj)])
+               (for [c (range 1 9) :let [ci (* c -1) cj (* c +1)]]  [(+ col ci) (+ row cj)])
+               (for [c (range 1 9) :let [ci (* c +1) cj (* c +1)]]  [(+ col ci) (+ row cj)])]
+        cross [(for [i (range (inc col) 9)]    [i row])
+               (for [i (range (dec col) 0 -1)] [i row])
+               (for [i (range (inc row) 9)]    [col i])
+               (for [i (range (dec row) 0 -1)] [col i])]
 
+        filter-out-of-bounds (fn [ray] (filter #(and (pos? (first %)) (pos? (second %))) ray))
+        filter-till-piece    (fn [ray] (take-while (fn [cell] (not (occupied-squares cell))) ray))
+
+        rays  (map filter-out-of-bounds rays)
+        rays  (map filter-till-piece rays)
+        cross (map filter-out-of-bounds cross)
+        cross (map filter-till-piece cross)]
+    (set (reduce into [] (concat rays cross)))))
+        
 
 (comment
   (let [state (state/init-state)
@@ -149,7 +171,18 @@
         pos [3 8]
         piece (get (:board state) pos)]
       (moves piece state))
+  (let [state (state/init-state)
+        pos [3 8]
+        piece (get (:board state) pos)]
+      (moves piece state))
+  (let [piece {:piece :queen :pos [5 4] :color :white}
+        state {:board (state/put-piece-on-board (state/init-board) piece)}]
+    (moves piece state))
+  
   (for [i [-1 1 -2 2] j [-1 1 -2 2] :when (not= (abs i) (abs j))] [i j])
   (map (fn [c] [(* c 1) (* c 1)]) (range 1 9))
   (filter (fn [[x y]] (and (pos? x) (pos? y))) (map (fn [c] [(* c 1) (* c 1)]) (range 1 9)))
-  (take-while #(not (#{[5 5] [2 2]} %)) (map (fn [c] [(* c 1) (* c 1)]) (range 1 9))))
+  (take-while #(not (#{[5 5] [2 2]} %)) (map (fn [c] [(* c 1) (* c 1)]) (range 1 9)))
+  (for [i (range 1 9) j (range 1 9) :when (and (or (= 4 i) (= 5 j)) (not= [i j] [4 5]))] [i j])
+  (for [i [-1 1] j [-1 1] c (range 1 9) :let [ci (* c i) cj (* c j)]]  [ci cj])
+  (map (fn [c] (let [x (for [i [-1 1] j [-1 1]] [i j])] (map #())))))
