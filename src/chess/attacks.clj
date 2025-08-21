@@ -183,14 +183,16 @@
         filter-attack-rays (fn [ray] (first (filter #(occupied-squares %) ray)))
         filter-opponent-pieces (fn [pos_] (-> board (get pos_) :color (= opponent-color)))
 
-        rays  (map filter-out-of-bounds rays)
-        rays  (map filter-attack-rays rays)
-        rays  (remove nil? rays)
-        rays  (filter filter-opponent-pieces rays)
-        cross (map filter-out-of-bounds cross)
-        cross (map filter-attack-rays cross)
-        cross (remove nil? cross)
-        cross (filter filter-opponent-pieces cross)]
+        rays (->> rays
+                  (map filter-out-of-bounds)
+                  (map filter-attack-rays)
+                  (remove nil?)
+                  (filter filter-opponent-pieces))
+        cross (->> cross
+                   (map filter-out-of-bounds)
+                   (map filter-attack-rays)
+                   (remove nil?)
+                   (filter filter-opponent-pieces))]
     (set (vec (concat rays cross)))))
 
 
