@@ -19,7 +19,6 @@
         new-board (-> board
                       (assoc attack-square moved-attacking-piece)
                       (assoc pos nil))]
-    (println occupied-squares all-pieces)
     (if target
       (-> state
         (assoc :board new-board)
@@ -92,7 +91,6 @@
                                        (filter (fn [[_ p]] (= (:color p) opponent-color)))
                                        (map first)
                                        set)]
-    (println opponent-occupied-squares)
     (s/intersection all-moves opponent-occupied-squares)))
 
 (defmethod attacks :rook [{:keys [pos color] :as piece} {:keys [board] :as state}]
