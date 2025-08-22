@@ -60,7 +60,10 @@
                    dy [-1 0 1]
                    :when (or (not= 0 dx) (not= 0 dy))] [dx dy])
         ideal-moves (mapv (fn [[dx dy]] [(+ x dx) (+ dy y)]) dxdy)
-        ideal-moves (set (filterv (fn [[xx yy]] (and (pos? xx) (pos? yy))) ideal-moves))
+        ideal-moves (filterv (fn [[xx yy]] (and (pos? xx) (pos? yy))) ideal-moves)
+        ideal-moves (filter (fn [[x y]] (and (pos? x) (pos? y))) ideal-moves)
+        ideal-moves (filter (fn [[x y]] (and (< x 9) (< y 9))) ideal-moves)
+        ideal-moves (set ideal-moves)
         occupied-squares (set (map first (filter second board)))]  ; when the value for the key is non-nil
     (s/difference ideal-moves occupied-squares)))
 
