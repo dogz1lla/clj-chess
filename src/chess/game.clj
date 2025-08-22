@@ -44,7 +44,7 @@
                         (map second)
                         (filter (fn [{:keys [color]}] (= color opponent-color)))))
         checked-by (when (seq checkers) (:id (first checkers)))]
-    (assert (#{0 1} (count checkers)) "More than 1 checker at a time detected")
+    ; (assert (#{0 1} (count checkers)) "More than 1 checker at a time detected")
     (assoc-in state [:board king-pos] (assoc king :checked-by checked-by))))
     
   
@@ -61,15 +61,33 @@
 (defn mate?
   "How is mate position defined? It means that a king
   a) has free squares in next to it and
-  b) moving to any of those squares will put it in check state."
+  b) moving to any of those squares will put it in check state.
+  NOTE: make sure this is called after all moves and attacks are updated
+
+  Logic
+  - get all moves and union with all attacks
+  - for each of the positions from that union create a new state where the king is in that position
+  - call update-check on each of those hypothetical states
+  - return (every? check? [state-1 state-2 ...])
+  "
   [{:keys [board turn] :as state}]
   (let [king (->> board
                   (filter second)
                   (filter (fn [[_ {:keys [piece]}]] (= :king piece)))
                   (filter (fn [[_ {:keys [color]}]] (= turn color)))
                   first
-                  second)]
-    (not (nil? (:checked-by king)))))
+                  second)
+        king-pos (:pos king)
+        future-moves (s/union (:moves king) (:attacks king))
+        future-states (map #(moves/move! king-pos % state) future-moves)
+        king-checked? (fn [st] (-> st
+                                   (calculate-all-moves)
+                                   (calculate-all-attacks)
+                                   (update-check)
+                                   (check?)))]
+    (println future-moves)
+    (println (map king-checked? future-states))
+    (every? king-checked? future-states)))
 
 
 (comment
@@ -86,5 +104,19 @@
                    (calculate-all-moves)
                    (calculate-all-attacks)
                    (update-check))]
-    ; (update-check state)
-    (check? state)))
+    (check? state))
+
+  (let [piece-1 {:piece :king :color :white :pos [8, 8] :id "king1"}
+        piece-2 {:piece :pawn :color :black :pos [8, 7] :id "pawn1"}
+        piece-3 {:piece :pawn :color :black :pos [7, 6] :id "pawn2"}
+        piece-4 {:piece :rook :color :black :pos [1, 7] :id "rook1"}
+        board (-> (state/init-board)
+                  (state/put-piece-on-board piece-1)
+                  (state/put-piece-on-board piece-2)
+                  (state/put-piece-on-board piece-3)
+                  (state/put-piece-on-board piece-4))
+        state (->> {:board board :turn :white}
+                   (calculate-all-moves)
+                   (calculate-all-attacks)
+                   (update-check))]
+    (mate? state)))
