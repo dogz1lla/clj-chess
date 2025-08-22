@@ -5,14 +5,16 @@
   (assoc board pos piece))
 
 (defn init-pieces [board {:keys [kind white black]}]
-  (let [add-piece (fn [color] (fn [s pos] (assoc s pos {:piece kind :pos pos :color color})))]
+  (let [add-piece (fn [color] (fn [s [idx pos]] (assoc s pos {:piece kind :pos pos :color color :id (str kind color ":" idx)})))
+        enum-white-positions (map vector (range) white)
+        enum-black-positions (map vector (range) black)]
       (reduce
         (add-piece :black)
         (reduce
           (add-piece :white)
           board
-          white)
-        black)))
+          enum-white-positions)
+        enum-black-positions)))
 
 (defn init-board []
   (let [squares (for [col (range 1 9) row (range 1 9)] [col row])
