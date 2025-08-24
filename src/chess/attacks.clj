@@ -77,12 +77,19 @@
                                      8 #{[(dec x) (inc y)]}
                                      #{[(inc x) (inc y)] [(dec x) (inc y)]})
                                    #{}))
-        occupied-squares (filter second board)  ; when the value for the key is non-nil
-        all-pieces (map second occupied-squares)
-        white (filter #(= :white (:color %)) all-pieces)
-        black (filter #(= :black (:color %)) all-pieces)
+
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        ; occupied-squares (set (map :pos all-pieces))
+
+        ; occupied-squares (filter second board)  ; when the value for the key is non-nil
+        ; all-pieces (map second occupied-squares)
+        ; white (filter #(= :white (:color %)) all-pieces)
+        ; black (filter #(= :black (:color %)) all-pieces)
         opponent-pieces (case color :white black :black white)
         potential-attacks (->> opponent-pieces
+                               (map second)
                                (map :pos)
                                (filter (fn [p] (attack-squares p)))
                                set)
