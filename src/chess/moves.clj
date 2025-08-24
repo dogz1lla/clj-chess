@@ -6,15 +6,17 @@
             [chess.state :as state]))
 
 
-(defn move! [start finish {:keys [board history] :as state}]
-  (let [piece (get board start)
-        moved-piece (assoc piece :pos finish)
-        new-board (-> board
-                      (assoc start nil)
-                      (assoc finish moved-piece))]
-     (-> state
-         (assoc :board new-board)
-         (assoc :history (conj history piece)))))
+(defn move!
+  "Find the piece by the having (:pos piece) = start, then switch :pos to finish.
+  TODO: add an assert that piece is not nil"
+  [start finish {:keys [board] :as state}
+    (let [white (:white board)
+          black (:black board)
+          all-pieces (into black white)
+          piece (first (filter (fn [[_ {:keys [pos]}]] (= pos start)) all-pieces)) 
+          piece-id (:id piece)
+          piece-color (:color piece)]
+      (assoc-in state [:board piece-color piece-id :pos] finish))])
 
 (defmulti moves :piece)
 
@@ -33,8 +35,10 @@
         leap-move   (case color
                       :white (if (= y 7) #{[x leap]} #{})
                       :black (if (= y 2) #{[x leap]} #{}))
-        occupied-squares (filter second board)  ; when the value for the key is non-nil
-        all-pieces (map second occupied-squares)
+        ; occupied-squares (filter second board)  ; when the value for the key is non-nil
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
         blocked? (some identity  ; why not or? see https://stackoverflow.com/a/2969551
                    (map
                      (fn [{:keys [pos]}]
@@ -188,4 +192,5 @@
   (take-while #(not (#{[5 5] [2 2]} %)) (map (fn [c] [(* c 1) (* c 1)]) (range 1 9)))
   (for [i (range 1 9) j (range 1 9) :when (and (or (= 4 i) (= 5 j)) (not= [i j] [4 5]))] [i j])
   (for [i [-1 1] j [-1 1] c (range 1 9) :let [ci (* c i) cj (* c j)]]  [ci cj])
-  (map (fn [c] (let [x (for [i [-1 1] j [-1 1]] [i j])] (map #())))))
+  (map (fn [c] (let [x (for [i [-1 1] j [-1 1]] [i j])] (map #()))))
+  (into {:1 1} {:2 2 :3 2}))
