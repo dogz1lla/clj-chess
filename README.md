@@ -28,8 +28,10 @@ Chess implementation in clojure. Game rendering via [quil](https://github.com/qu
 - [x] add bishop
 - [x] add knight
 - [x] add queen
+- [x] check functionality
+- [x] mate functionality
+- [ ] turn switching
+- [ ] pawn promotion
 - [ ] implement en-passant
 - [ ] implement castling
-- [ ] check functionality
-- [ ] mate functionality
 - [ ] game over functionality
