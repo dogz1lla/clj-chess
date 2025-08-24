@@ -1,8 +1,10 @@
 (ns chess.state)
 
 
-(defn put-piece-on-board [board {:keys [pos] :as piece}]
-  (assoc board pos piece))
+(defn put-piece-on-board
+  "Useful for testing: gives you a board with the piece and also lets you keep the piece handle"
+  [board {:keys [color id] :as piece}]
+  (assoc-in board [color id] piece))
 
 (defn init-pieces [board {:keys [kind white black]}]
   (let [add-piece (fn [color]
