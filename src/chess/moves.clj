@@ -68,7 +68,12 @@
         ideal-moves (filter (fn [[x y]] (and (pos? x) (pos? y))) ideal-moves)
         ideal-moves (filter (fn [[x y]] (and (< x 9) (< y 9))) ideal-moves)
         ideal-moves (set ideal-moves)
-        occupied-squares (set (map first (filter second board)))]  ; when the value for the key is non-nil
+
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        occupied-squares (set (map :pos all-pieces))]
+        ; occupied-squares (set (map first (filter second board)))]  ; when the value for the key is non-nil
     (s/difference ideal-moves occupied-squares)))
 
 (defmethod moves :rook [{:keys [pos color]} {:keys [board]}]
