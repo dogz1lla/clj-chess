@@ -59,6 +59,12 @@
         checked-by (when (seq checkers) (:id (first checkers)))]
     (assoc-in state [:board king-color king-id] (assoc king :checked-by checked-by))))
     
+(defn refresh-state [state]
+  (-> state
+      (calculate-all-moves)
+      (calculate-all-attacks)
+      (update-check)))
+  
   
 (defn check? [{:keys [board turn] :as state}]
   (let [white (:white board)
@@ -97,9 +103,7 @@
         future-moves (s/union (:moves king) (:attacks king))
         future-states (map #(moves/move! king-pos % state) future-moves)
         king-checked? (fn [st] (-> st
-                                   (calculate-all-moves)
-                                   (calculate-all-attacks)
-                                   (update-check)
+                                   (refresh-state)
                                    (check?)))]
     (every? king-checked? future-states)))
 
@@ -127,75 +131,23 @@
                     state (init-game)]
                     
       (if (= (:type msg) :game-over)
-        (println "Game over!")
+        (do
+          (println "Game over!")
+          (async/>! c-out (refresh-state state)))
         (let [msg-type (:type msg)
               msg-body (:body msg)
               next-state (case msg-type
                            :game-start state
                            :move (let [[from to] msg-body]
-                                   (make-move from to state)))
-              next-state (-> next-state
-                             (calculate-all-moves)
-                             (calculate-all-attacks)
-                             (update-check))]
+                                   (make-move from to state))
+                           :attack (let [[from to] msg-body]
+                                     (make-attack from to state)))
+              next-state (refresh-state next-state)]
           ; (println (str "Got message type " msg-type ", the msg is " msg))
           (async/>! c-out next-state)
           (recur (async/<! c-in) next-state))))
     [c-in c-out]))
 
-
-; (let [[in out] (run-game!)]
-;   (println (async/<!! out))
-;   (async/>!! in {:type :move :body [[1 2] [1 4]]})
-;   (println (async/<!! out))
-;   (async/>!! in {:type :move :body [[1 4] [1 5]]})
-;   (println (async/<!! out))
-;   (async/>!! in {:type :game-over})
-;   #_(println (async/<!! out)))
-
-; (let [[in out] (run-game!)]
-;   (println (async/<!! out))
-;   (async/<!! (async/timeout 1000))
-;   (async/>!! in {:type :move})
-;   (println (async/<!! out))
-;   (async/<!! (async/timeout 1000))
-;   (async/>!! in {:type :attack})
-;   (println (async/<!! out))
-;   (async/<!! (async/timeout 1000))
-;   (async/>!! in {:type :game-over})
-;   #_(println (async/<!! out)))
-
-
-{:type :move :body [[1 1] [3 3]]}
-{:type :game-over :body nil}
-{:type :game-over :body nil}
-
-
-(defn pipeline-test []
-  (let [c (async/chan)]
-    (async/go-loop [msg "start"
-                    t (async/timeout 2000)]
-     (if
-       (not= msg "exit")
-       (do
-         (println msg)
-         (async/<! t)
-         (recur (async/<! c) (async/timeout (* 1000 (rand-nth [1 2])))))
-       nil))
-   c))
-    
-#_(let [c (pipeline-test)]
-    (async/>!! c "hello,")
-    (async/>!! c "world")
-    (async/>!! c "exit"))
-
-#_(doseq [n (range 10) :let [i (-> n
-                                   inc
-                                   range
-                                   rand-nth)]]                    
-   (async/go
-     (async/<! (async/timeout (* i 1000)))
-     (println n)))
 
 (comment
   (let [piece-1 {:piece :king :color :white :pos [3, 3] :id "king1"}
