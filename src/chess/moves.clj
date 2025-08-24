@@ -78,11 +78,10 @@
 
 (defmethod moves :rook [{:keys [pos color]} {:keys [board]}]
   (let [[col row] pos
-        ; opponent-color (case color :white :black :black :white)
-        occupied-squares (->> board
-                              (filter second)
-                              (map first)
-                              set)
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        occupied-squares (set (map :pos all-pieces))
         ; horizontal line
         horizontal-moves (for [x (range 1 9) :when (not= x col)] [x row])
         same-row-obstacles (filter #(= row (second %)) occupied-squares)
@@ -108,12 +107,11 @@
 (defmethod moves :bishop [{:keys [pos color]} {:keys [board]}]
   (let [[col row] pos
         ; opponent-color (case color :white :black :black :white)
-        occupied-squares (->> board
-                              (filter second)
-                              (map first)
-                              set)
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        occupied-squares (set (map :pos all-pieces))
 
-        ; rays (for [i [-1 1] j [-1 1]] [i j])
         rays [(map (fn [c] [(* c +1) (* c +1)]) (range 1 9))
               (map (fn [c] [(* c +1) (* c -1)]) (range 1 9))
               (map (fn [c] [(* c -1) (* c +1)]) (range 1 9))
@@ -129,10 +127,10 @@
 
 (defmethod moves :knight [{:keys [pos color]} {:keys [board]}]
   (let [[col row] pos
-        occupied-squares (->> board
-                              (filter second)
-                              (map first)
-                              set)
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        occupied-squares (set (map :pos all-pieces))
         ds (for [i [-1 1 -2 2] j [-1 1 -2 2] :when (not= (abs i) (abs j))] [i j])
         moves (->> ds
                    (map (fn [[dx dy]] [(+ col dx) (+ row dy)]))
@@ -143,10 +141,10 @@
 
 (defmethod moves :queen [{:keys [pos color]} {:keys [board]}]
   (let [[col row] pos
-        occupied-squares (->> board
-                              (filter second)
-                              (map first)
-                              set)
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        occupied-squares (set (map :pos all-pieces))
         rays  [(for [c (range 1 9) :let [ci (* c -1) cj (* c -1)]]  [(+ col ci) (+ row cj)])
                (for [c (range 1 9) :let [ci (* c +1) cj (* c -1)]]  [(+ col ci) (+ row cj)])
                (for [c (range 1 9) :let [ci (* c -1) cj (* c +1)]]  [(+ col ci) (+ row cj)])
