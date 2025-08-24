@@ -80,10 +80,13 @@
     [(if x-in-bounds? (inc (quot x a)) nil)
      (if y-in-bounds? (inc (quot y a)) nil)]))
 
-(defn grabbed-piece? [state mouse-x mouse-y a r]
-  (let [board (:board state)
-        square (canvas-pos->cell-coord mouse-x mouse-y a)]
-    (get board square)))
+(defn grabbed-piece? [{:keys [board]} mouse-x mouse-y a r]
+  (let [square (canvas-pos->cell-coord mouse-x mouse-y a)
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))]
+    ; (get board square)
+    (first (filter (fn [{:keys [pos]}] (= pos square)) all-pieces))))
 
 (defn draw-chess-board [a]
   (let [cell-coords (for [i (range 8) j (range 8)
@@ -92,10 +95,11 @@
                       [I J])]
     (doseq [[x y] cell-coords] (chess-square x y a))))
 
-(defn draw-chess-pieces [state a]
-  (let [board (:board state)
-        occupied-squares (filter second board)  ; when the value for the key is non-nil
-        all-pieces (map second occupied-squares)
+(defn draw-chess-pieces [{:keys [board]} a]
+  (let [white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        ; all-pieces (map second occupied-squares)
         piece-types (map :piece all-pieces)
         piece-colors (map :color all-pieces)
         piece-positions (map :pos all-pieces)
@@ -130,7 +134,7 @@
   ; - attacks
   ; - moves
   (when @piece-selected?
-    (draw-possible-moves (moves/moves @piece-selected? @game-state) cell-size)
+    (draw-possible-moves   (moves/moves @piece-selected? @game-state) cell-size)
     (draw-possible-attacks (attacks/attacks @piece-selected? @game-state) cell-size)
     (let [[x y] (:pos @piece-selected?)]
       (when (and x y)
@@ -144,13 +148,13 @@
           (not @selection-cooldown?)
           (= :left (q/mouse-button)))
     (let [square (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size)
-          possible-moves (moves/moves @piece-selected? @game-state)  ; it is a set of vectors
+          possible-moves   (moves/moves     @piece-selected? @game-state)  ; it is a set of vectors
           possible-attacks (attacks/attacks @piece-selected? @game-state)  ; it is a set of vectors
           start (:pos @piece-selected?)]
       (if (possible-attacks square)  ; if can attack -> attack!
         (do
           ; (println (attacks/attack! square @piece-selected? @game-state))
-          (reset! game-state (attacks/attack! square @piece-selected? @game-state)))
+          (reset! game-state (attacks/attack! start square @game-state)))
         (when (possible-moves square)  ; else if can move -> move!
           ; (reset! game-state (move-piece @piece-selected? square @game-state))
           (reset! game-state (moves/move! start square @game-state)))))
