@@ -128,7 +128,6 @@
     [c-in c-out]))
 
 
-; NEXT: only keep track of occupied squares in the state?
 (let [[in out] (run-game!)]
   (println (async/<!! out))
   (async/>!! in {:type :move :body [[1 2] [1 4]]})
