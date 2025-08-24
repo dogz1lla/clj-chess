@@ -174,19 +174,12 @@
         center-on-piece (fn [ray] (map (fn [[x y]] [(+ x col) (+ y row)]) ray))
         filter-out-of-bounds (fn [ray] (filter (fn [[x y]] (and (pos? x) (pos? y))) ray))
         filter-attack-rays (fn [ray] (first (filter #(occupied-squares %) ray)))
-        filter-opponent-pieces #(opponent-squares %)
-             
-        ; rays (map center-on-piece rays)
-        ; rays (map filter-out-of-bounds rays)
-        ; rays (map filter-attack-rays rays)
-        ; rays (remove nil? rays)
-        ; rays (filter filter-opponent-pieces rays)
         rays (->> rays
                   (map center-on-piece)
                   (map filter-out-of-bounds)
                   (map filter-attack-rays)
                   (remove nil?)
-                  (filter-opponent-pieces))]
+                  (filter #(opponent-squares %)))]
     (set rays)))
 
 

@@ -30,4 +30,16 @@
                                                         (s/put-piece-on-board pawn-3))
                                               state {:board board}]
                                          (a/attacks king state)))))))
+
+(t/deftest bishop-attacks
+  (t/testing "white bishops"
+    (t/testing "target in the opposite corner"
+      (t/is (= #{[1, 1]} (let [bishop  {:piece :bishop :pos [8, 8] :color :white :id "bishop:white:1"}
+                               target  {:piece :pawn   :pos [1, 1] :color :black :id "pawn:black:1"}
+                               board (-> {}
+                                         (s/put-piece-on-board bishop)
+                                         (s/put-piece-on-board target))
+                               state {:board board}]
+                            (a/attacks bishop state)))))))
+
 (t/run-tests)

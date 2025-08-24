@@ -64,8 +64,9 @@
                          board (-> {}
                                    (s/put-piece-on-board pawn))
                          state {:board board}]
-                      (m/moves pawn state))))))
+                      (m/moves pawn state)))))))
 
+(t/deftest king-moves
   (t/testing "white kings"
     (t/testing "nobody around"
       (t/is (= #{[4 5] [6 5] [5 4] [5 6] [4 4] [4 6] [6 4] [6 6]}
