@@ -14,8 +14,11 @@
             [quil.core :as q]
             [chess.state :as state]
             [chess.moves :as moves]
-            [chess.attacks :as attacks]))
+            [chess.attacks :as attacks]
+            [chess.game :as game]))
 
+
+(def cell-size 100)
 
 ;--------------------------------------------------------------------------------------------------
 ; drawing
@@ -115,97 +118,98 @@
   (let [cell-coords (for [[i j] attack-list :let [I (* a (dec i)) J (* a (dec j))]] [I J])]
     (doseq [[x y] cell-coords] (attack-square x y a))))
 
-(def piece-selected? (atom nil))
-(def selection-cooldown? (atom false))
-(def cell-size 100)
-(def game-state (atom (state/init-state)))
 
-(defn draw
-  "quil draw function."
-  []
-  ;; reload canvas
-  (clear-screen)
-  (q/fill 124 149 92)
+(defn render-fn []
+  (let [[in out] (game/run-game!)
+        piece-selected? (atom nil)
+        selection-cooldown? (atom false)
+        ; cell-size 100
+        msg (atom nil)
+        game-state (atom (async/<!! out))]
+    (fn []
+      (clear-screen)
+      (q/fill 124 149 92)
 
-  ; draw the chess board squares
-  (draw-chess-board cell-size)
+       ; draw the chess board squares
+      (draw-chess-board cell-size)
 
-  ; drawing possible moves:
-  ; - attacks
-  ; - moves
-  (when @piece-selected?
-    (draw-possible-moves   (moves/moves @piece-selected? @game-state) cell-size)
-    (draw-possible-attacks (attacks/attacks @piece-selected? @game-state) cell-size)
-    (let [[x y] (:pos @piece-selected?)]
-      (when (and x y)
-        (selected-piece-square (* cell-size (dec x)) (* cell-size (dec y)) cell-size))))
+       ; drawing possible moves:
+       ; - attacks
+       ; - moves
+      (when @piece-selected?
+        (draw-possible-moves   (:moves   @piece-selected?) cell-size)
+        (draw-possible-attacks (:attacks @piece-selected?) cell-size)
+        (let [[x y] (:pos @piece-selected?)]
+          (when (and x y)
+            (selected-piece-square (* cell-size (dec x)) (* cell-size (dec y)) cell-size))))
 
-  ; moving the piece:
-  ; - if the move is a valid attack -> attack!
-  ; - else if the move is a valid move -> move!
-  (when (and
-          @piece-selected?
-          (not @selection-cooldown?)
-          (= :left (q/mouse-button)))
-    (let [square (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size)
-          possible-moves   (moves/moves     @piece-selected? @game-state)  ; it is a set of vectors
-          possible-attacks (attacks/attacks @piece-selected? @game-state)  ; it is a set of vectors
-          start (:pos @piece-selected?)]
-      (if (possible-attacks square)  ; if can attack -> attack!
+      ; moving the piece:
+      ; - if the move is a valid attack -> attack!
+      ; - else if the move is a valid move -> move!
+      (when (and
+              @piece-selected?
+              (not @selection-cooldown?)
+              (= :left (q/mouse-button)))
+        (let [square (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size)
+              possible-moves   (:moves   @piece-selected?)  ; it is a set of vectors
+              possible-attacks (:attacks @piece-selected?)  ; it is a set of vectors
+              start (:pos @piece-selected?)]
+          (if (possible-attacks square)  ; if can attack -> attack!
+            (let [msg {:type :attack :body [start square]}]
+              (async/>!! in msg)
+              (reset! game-state (async/<!! out)))
+            (when (possible-moves square)  ; else if can move -> move!
+              (let [msg {:type :move :body [start square]}]
+                (async/>!! in msg)
+                (reset! game-state (async/<!! out))))))
+        (reset! piece-selected? nil))
+
+      ; grab a piece by clicking on it
+      (when (and
+              (not @selection-cooldown?)
+              (not @piece-selected?)
+              (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35)
+              (= :left (q/mouse-button)))
         (do
-          ; (println (attacks/attack! square @piece-selected? @game-state))
-          (reset! game-state (attacks/attack! start square @game-state)))
-        (when (possible-moves square)  ; else if can move -> move!
-          ; (reset! game-state (move-piece @piece-selected? square @game-state))
-          (reset! game-state (moves/move! start square @game-state)))))
-    (reset! piece-selected? nil))
+          (reset! piece-selected? (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35))
+          (async/go (async/<! (async/timeout 250)) (reset! selection-cooldown? false))  ; selection cooldown of 250ms
+          (reset! selection-cooldown? true)))
 
-  ; grab a piece by clicking on it
-  (when (and
-          (not @selection-cooldown?)
-          (not @piece-selected?)
-          (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35)
-          (= :left (q/mouse-button)))
-    (do
-      (reset! piece-selected? (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35))
-      (async/go (async/<! (async/timeout 250)) (reset! selection-cooldown? false))  ; selection cooldown of 250ms
-      (reset! selection-cooldown? true)))
+      ; cancel selection by pressing space key
+      (when (and
+              @piece-selected?
+              (not @selection-cooldown?)
+              (q/key-pressed?)
+              (= :space (q/key-as-keyword)))
+        (reset! piece-selected? nil))
 
-  ; cancel selection by pressing space key
-  (when (and
-          @piece-selected?
-          (not @selection-cooldown?)
-          (q/key-pressed?)
-          (= :space (q/key-as-keyword)))
-    (reset! piece-selected? nil))
+      ; highlight the square on hover
+      (let [[x y] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size)]
+        (when (and x y)
+          (move-square (* cell-size (dec x)) (* cell-size (dec y)) cell-size)))
 
-  ; highlight the square on hover
-  (let [[x y] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size)]
-    (when (and x y)
-      (move-square (* cell-size (dec x)) (* cell-size (dec y)) cell-size)))
+      ; draw the chess pieces
+      (draw-chess-pieces @game-state cell-size)
 
-  ; draw the chess pieces
-  (draw-chess-pieces @game-state cell-size)
-
-  ; dev monitoring
-  (doseq [[ind capt fn] [[0 "button" q/mouse-button]
-                         #_[0 "key-as-keyword" q/key-as-keyword]
-                         #_[1 "pressed?" q/mouse-pressed?]
-                         [1 "piece-selected?" (fn [] @piece-selected?)]
-                         [2 "x" q/mouse-x]
-                         [3 "y" q/mouse-y]
-                         [4 "grab" (fn [] (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35))]
-                         [5 "moves" (fn [] (when @piece-selected? (moves/moves @piece-selected? @game-state)))]
-                         [6 "attacks" (fn [] (when @piece-selected? (attacks/attacks @piece-selected? @game-state)))]
-                         [7 "square" (fn [] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size))]]]
-    (q/text (str capt " " (fn)) 10 (+ (* 20 ind) 20))))
-  
+      ; dev monitoring
+      (doseq [[ind capt fn] [[0 "button" q/mouse-button]
+                             #_[0 "key-as-keyword" q/key-as-keyword]
+                             #_[1 "pressed?" q/mouse-pressed?]
+                             [1 "piece-selected?" (fn [] @piece-selected?)]
+                             [2 "x" q/mouse-x]
+                             [3 "y" q/mouse-y]
+                             [4 "grab" (fn [] (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35))]
+                             [5 "moves" (fn [] (when @piece-selected? (:moves @piece-selected?)))]
+                             [6 "attacks" (fn [] (when @piece-selected? (:attacks @piece-selected?)))]
+                             [7 "square" (fn [] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size))]]]
+        (q/text (str capt " " (fn)) 10 (+ (* 20 ind) 20))))))
+     
 
 (q/defsketch chess-game
   :title "tetris"
   :settings #(q/smooth 2)
   :setup setup
-  :draw draw
+  :draw (render-fn)
   :features [:keep-on-top]
   :size [(* 8 cell-size) (* 8 cell-size)]
   :on-close #(println "Game over"))
