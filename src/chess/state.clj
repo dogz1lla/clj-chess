@@ -19,11 +19,11 @@
           enum-white-positions)
         enum-black-positions)))
 
-(defn init-board []
-  (let [squares (for [col (range 1 9) row (range 1 9)] [col row])
-        nils (repeat (count squares) nil)
-        board (zipmap squares nils)]
-    board))
+; (defn init-board []
+;   (let [squares (for [col (range 1 9) row (range 1 9)] [col row])
+;         nils (repeat (count squares) nil)
+;         board (zipmap squares nils)]
+;     board))
 
 ; (defn init-state []
 ;   {:board (-> (init-board)
@@ -37,18 +37,22 @@
 ;    :history []
 ;    :captured []})
 
-(defn init-state []
-  {:board (-> {}
-              (init-pieces {:kind :king   :white [[5 8]]       :black [[5 1]]})
-              (init-pieces {:kind :queen  :white [[4 8]]       :black [[4 1]]})
-              (init-pieces {:kind :rook   :white [[1 8] [8 8]] :black [[1 1] [8 1]]})
-              (init-pieces {:kind :bishop :white [[3 8] [6 8]] :black [[3 1] [6 1]]})
-              (init-pieces {:kind :knight :white [[2 8] [7 8]] :black [[2 1] [7 1]]})
-              (init-pieces {:kind :pawn   :white (for [x (range 1 9)] [x 7]) :black (for [x (range 1 9)] [x 2])}))
-   :turn :white
-   :history []
-   :captured []})
+(defn init-state
+  ([]
+   {:board (-> {}
+               (init-pieces {:kind :king   :white [[5 8]]       :black [[5 1]]})
+               (init-pieces {:kind :queen  :white [[4 8]]       :black [[4 1]]})
+               (init-pieces {:kind :rook   :white [[1 8] [8 8]] :black [[1 1] [8 1]]})
+               (init-pieces {:kind :bishop :white [[3 8] [6 8]] :black [[3 1] [6 1]]})
+               (init-pieces {:kind :knight :white [[2 8] [7 8]] :black [[2 1] [7 1]]})
+               (init-pieces {:kind :pawn   :white (for [x (range 1 9)] [x 7]) :black (for [x (range 1 9)] [x 2])}))
+    :turn :white})
+  ([pieces]
+   {:board (reduce init-pieces {} pieces)
+    :turn :white}))
                  
 (comment
-  (init-board)
-  (init-state))
+  ; (init-board)
+  (init-state)
+  (init-state [{:kind :king  :white [[5 8]] :black [[5 1]]}
+               {:kind :queen :white [[4 8]] :black [[4 1]]}]))
