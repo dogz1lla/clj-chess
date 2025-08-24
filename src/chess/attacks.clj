@@ -81,12 +81,6 @@
         white (:white board)
         black (:black board)
         all-pieces (map second (into black white))
-        ; occupied-squares (set (map :pos all-pieces))
-
-        ; occupied-squares (filter second board)  ; when the value for the key is non-nil
-        ; all-pieces (map second occupied-squares)
-        ; white (filter #(= :white (:color %)) all-pieces)
-        ; black (filter #(= :black (:color %)) all-pieces)
         opponent-pieces (case color :white black :black white)
         potential-attacks (->> opponent-pieces
                                (map second)
@@ -124,11 +118,12 @@
                    :when (or (not= 0 dx) (not= 0 dy))] [dx dy])
         all-moves (mapv (fn [[dx dy]] [(+ x dx) (+ dy y)]) dxdy)
         all-moves (set (filterv (fn [[xx yy]] (and (pos? xx) (pos? yy))) all-moves))
-        opponent-color (case color :white :black :black :white)
-        opponent-occupied-squares (->> board
-                                       (filter second)
-                                       (filter (fn [[_ p]] (= (:color p) opponent-color)))
-                                       (map first)
+        white (:white board)
+        black (:black board)
+        opponent-pieces (case color :white black :black white)
+        opponent-occupied-squares (->> opponent-pieces
+                                       (map second)
+                                       (map :pos)
                                        set)]
     (s/intersection all-moves opponent-occupied-squares)))
 
