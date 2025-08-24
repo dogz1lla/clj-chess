@@ -129,9 +129,16 @@
 
 (defmethod attacks :rook [{:keys [pos color] :as piece} {:keys [board] :as state}]
    (let [[col row] pos
-         opponent-color (case color :white :black :black :white)
-         all-pieces (filter second board)
-         occupied-squares (->> all-pieces (map first) set)
+         ; opponent-color (case color :white :black :black :white)
+         ; all-pieces (filter second board)
+         ; occupied-squares (->> all-pieces (map first) set)
+
+         white (:white board)
+         black (:black board)
+         all-pieces (map second (into black white))
+         occupied-squares (set (map :pos all-pieces))
+         opponent-pieces (map second (case color :white black :black white))
+
          ; horizontal line
          same-row-obstacles (filter #(= row (second %)) occupied-squares)
          same-row-obstacles-xs (map first same-row-obstacles)
@@ -148,18 +155,18 @@
          y-max (if (seq to-the-south) (apply min to-the-south) 9)
          ; filter the pieces
          limiting-squares (set [[x-min row] [x-max row] [col y-min] [col y-max]])
-         opponents-in-the-way (filter (fn [p] (and (= opponent-color (:color p)) (limiting-squares (:pos p)))) (map second all-pieces))]
+         opponents-in-the-way (filter (fn [p] (limiting-squares (:pos p))) opponent-pieces)]
       (set (map :pos opponents-in-the-way))))
 
 
 (defmethod attacks :bishop [{:keys [pos color] :as piece} {:keys [board] :as state}]
   (let [[col row] pos
-        opponent-color (case color :white :black :black :white)
-        occupied-squares (->> board
-                              (filter second)
-                              (map first)
-                              set)
-
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        occupied-squares (set (map :pos all-pieces))
+        opponent-pieces (map second (case color :white black :black white))
+        opponent-squares (set (map :pos opponent-pieces))
         rays [(map (fn [c] [(* c +1) (* c +1)]) (range 1 9))
               (map (fn [c] [(* c +1) (* c -1)]) (range 1 9))
               (map (fn [c] [(* c -1) (* c +1)]) (range 1 9))
@@ -167,25 +174,30 @@
         center-on-piece (fn [ray] (map (fn [[x y]] [(+ x col) (+ y row)]) ray))
         filter-out-of-bounds (fn [ray] (filter (fn [[x y]] (and (pos? x) (pos? y))) ray))
         filter-attack-rays (fn [ray] (first (filter #(occupied-squares %) ray)))
-        filter-opponent-pieces (fn [pos_] (-> board (get pos_) :color (= opponent-color)))
+        filter-opponent-pieces #(opponent-squares %)
              
-        rays (map center-on-piece rays)
-        rays (map filter-out-of-bounds rays)
-        rays (map filter-attack-rays rays)
-        rays (remove nil? rays)
-        rays (filter filter-opponent-pieces rays)]
+        ; rays (map center-on-piece rays)
+        ; rays (map filter-out-of-bounds rays)
+        ; rays (map filter-attack-rays rays)
+        ; rays (remove nil? rays)
+        ; rays (filter filter-opponent-pieces rays)
+        rays (->> rays
+                  (map center-on-piece)
+                  (map filter-out-of-bounds)
+                  (map filter-attack-rays)
+                  (remove nil?)
+                  (filter-opponent-pieces))]
     (set rays)))
 
 
 (defmethod attacks :knight [{:keys [pos color] :as piece} {:keys [board] :as state}]
   (let [[col row] pos
-        opponent-color (case color :white :black :black :white)
-        occupied-squares (->> board
-                              (filter second)
-                              (map first)
-                              set)
-        opponent-squares (filter (fn [square] (= opponent-color (get-in board [square :color]))) occupied-squares)
-        opponent-squares (set opponent-squares)
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        occupied-squares (set (map :pos all-pieces))
+        opponent-pieces (map second (case color :white black :black white))
+        opponent-squares (set (map :pos opponent-pieces))
         ds (for [i [-1 1 -2 2] j [-1 1 -2 2] :when (not= (abs i) (abs j))] [i j])
         moves (->> ds
                    (map (fn [[dx dy]] [(+ col dx) (+ row dy)]))
@@ -196,12 +208,19 @@
 
 (defmethod attacks :queen [{:keys [pos color] :as piece} {:keys [board] :as state}]
   (let [[col row] pos
-        opponent-color (case color :white :black :black :white)
-        occupied-squares (->> board
-                              (filter second)
-                              ; (filter #(not= color (:color (second %))))
-                              (map first)
-                              set)
+        ; opponent-color (case color :white :black :black :white)
+        ; occupied-squares (->> board
+        ;                       (filter second)
+        ;                       ; (filter #(not= color (:color (second %))))
+        ;                       (map first)
+        ;                       set)
+        white (:white board)
+        black (:black board)
+        all-pieces (map second (into black white))
+        occupied-squares (set (map :pos all-pieces))
+        opponent-pieces (map second (case color :white black :black white))
+        opponent-squares (set (map :pos opponent-pieces))
+
         rays  [(for [c (range 1 9) :let [ci (* c -1) cj (* c -1)]]  [(+ col ci) (+ row cj)])
                (for [c (range 1 9) :let [ci (* c +1) cj (* c -1)]]  [(+ col ci) (+ row cj)])
                (for [c (range 1 9) :let [ci (* c -1) cj (* c +1)]]  [(+ col ci) (+ row cj)])
@@ -213,7 +232,7 @@
 
         filter-out-of-bounds (fn [ray] (filter #(and (pos? (first %)) (pos? (second %))) ray))
         filter-attack-rays (fn [ray] (first (filter #(occupied-squares %) ray)))
-        filter-opponent-pieces (fn [pos_] (-> board (get pos_) :color (= opponent-color)))
+        filter-opponent-pieces #(opponent-squares %)
 
         rays (->> rays
                   (map filter-out-of-bounds)
