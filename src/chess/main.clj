@@ -33,18 +33,18 @@
   (clear-screen)
   (q/frame-rate 60)
   
-  (q/set-state! :image {:pawn   {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/0/04/Chess_plt60.png")
-                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/c/cd/Chess_pdt60.png")}
-                        :king   {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/3/3b/Chess_klt60.png")
-                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/e/e3/Chess_kdt60.png")}
-                        :rook   {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/5/5c/Chess_rlt60.png")
-                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/a/a0/Chess_rdt60.png")}
-                        :bishop {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/9/9b/Chess_blt60.png")
-                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/8/81/Chess_bdt60.png")}
-                        :knight {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/2/28/Chess_nlt60.png")
-                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/f/f1/Chess_ndt60.png")}
-                        :queen  {:white (q/load-image "https://upload.wikimedia.org/wikipedia/commons/4/49/Chess_qlt60.png")
-                                 :black (q/load-image "https://upload.wikimedia.org/wikipedia/commons/a/af/Chess_qdt60.png")}}))
+  (q/set-state! :image {:pawn   {:white (q/load-image "./resources/imgs/P_w.png")
+                                 :black (q/load-image "./resources/imgs/P_b.png")}
+                        :king   {:white (q/load-image "./resources/imgs/K_w.png")
+                                 :black (q/load-image "./resources/imgs/K_b.png")}
+                        :rook   {:white (q/load-image "./resources/imgs/R_w.png")
+                                 :black (q/load-image "./resources/imgs/R_b.png")}
+                        :bishop {:white (q/load-image "./resources/imgs/B_w.png")
+                                 :black (q/load-image "./resources/imgs/B_b.png")}
+                        :knight {:white (q/load-image "./resources/imgs/H_w.png")
+                                 :black (q/load-image "./resources/imgs/H_b.png")}
+                        :queen  {:white (q/load-image "./resources/imgs/Q_w.png")
+                                 :black (q/load-image "./resources/imgs/Q_b.png")}}))
 
 
 (defn chess-square 
