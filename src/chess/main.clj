@@ -123,8 +123,6 @@
   (let [[in out] (game/run-game!)
         piece-selected? (atom nil)
         selection-cooldown? (atom false)
-        ; cell-size 100
-        msg (atom nil)
         game-state (atom (async/<!! out))]
     (fn []
       (clear-screen)
