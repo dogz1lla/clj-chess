@@ -59,6 +59,11 @@
         checked-by (when (seq checkers) (:id (first checkers)))]
     (assoc-in state [:board king-color king-id] (assoc king :checked-by checked-by))))
     
+
+(defn switch-turn [{:keys [turn] :as state}]
+  (assoc state :turn (case turn :white :black :black :white)))
+  
+
 (defn refresh-state [state]
   (-> state
       (calculate-all-moves)
@@ -80,8 +85,8 @@
 
 (defn mate?
   "How is mate position defined? It means that a king
-  a) has free squares in next to it and
-  b) moving to any of those squares will put it in check state.
+  a. has free squares in next to it and
+  b. moving to any of those squares will put it in check state.
   NOTE: make sure this is called after all moves and attacks are updated
 
   Logic
@@ -131,6 +136,7 @@
                     state (init-game)]
                     
       (if (= (:type msg) :game-over)
+        ; FIXME this branch shouldnt exist probably
         (do
           (println "Game over!")
           (async/>! c-out (refresh-state state)))
@@ -143,9 +149,14 @@
                            :attack (let [[from to] msg-body]
                                      (make-attack from to state)))
               next-state (refresh-state next-state)]
-          ; (println (str "Got message type " msg-type ", the msg is " msg))
-          (async/>! c-out next-state)
-          (recur (async/<! c-in) next-state))))
+          (if (game-over? next-state)
+            (do
+              (println "Game overrrrrr")
+              (async/>! c-out next-state))  ; FIXME return something more meaningful
+            (do
+              (let [next-state (switch-turn next-state)]
+                (async/>! c-out next-state)
+                (recur (async/<! c-in) next-state)))))))
     [c-in c-out]))
 
 
