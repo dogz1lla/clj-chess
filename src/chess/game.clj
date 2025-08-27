@@ -83,6 +83,7 @@
     (not (nil? (:checked-by king)))))
                  
 
+; TODO (next) -- update the mate logic to take into account pieces that can take out the checker
 (defn mate?
   "How is mate position defined? It means that a king
   a. has free squares in next to it and
@@ -114,7 +115,8 @@
     (and (boolean (seq future-moves)) (every? king-checked? future-states))))
 
 (defn game-over? [state]
-  (mate? state))  
+  ; NOTE need to switch the turn because this check is supposed to happen after enemy's turn
+  (mate? (switch-turn state)))  
 
 
 (defn run-game!
@@ -136,11 +138,11 @@
     (async/go-loop [msg {:type :game-start}
                     state (init-game)]
                     
-      (if (= (:type msg) :game-over)
-        ; FIXME this branch shouldnt exist probably
-        (do
-          (println "Game over!")
-          (async/>! c-out (refresh-state state)))
+      (if (= (:type msg) :game-start)
+          (let [next-state (refresh-state state)]
+            (println "Game start!")
+            (async/>! c-out next-state)
+            (recur (async/<! c-in) next-state))
         (let [msg-type (:type msg)
               msg-body (:body msg)
               next-state (case msg-type
@@ -152,7 +154,7 @@
               next-state (refresh-state next-state)]
           (if (game-over? next-state)
             (do
-              (println "Game overrrrrr")
+              (println "Checkmate!")
               (async/>! c-out next-state))  ; FIXME return something more meaningful
             (do
               (let [next-state (switch-turn next-state)]
