@@ -110,7 +110,8 @@
         king-checked? (fn [st] (-> st
                                    (refresh-state)
                                    (check?)))]
-    (every? king-checked? future-states)))
+    ; NOTE: doing (boolean ...) just to return false instead of nil (for OCD reasons)
+    (and (boolean (seq future-moves)) (every? king-checked? future-states))))
 
 (defn game-over? [state]
   (mate? state))  
@@ -214,4 +215,7 @@
                    (calculate-all-moves)
                    (calculate-all-attacks)
                    (update-check))]
+    (mate? state))
+
+  (let [state (init-game)]
     (mate? state)))
