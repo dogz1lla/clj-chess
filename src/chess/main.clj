@@ -83,11 +83,12 @@
     [(if x-in-bounds? (inc (quot x a)) nil)
      (if y-in-bounds? (inc (quot y a)) nil)]))
 
-(defn grabbed-piece? [{:keys [board]} mouse-x mouse-y a r]
+(defn grabbed-piece? [{:keys [board turn]} mouse-x mouse-y a r]
   (let [square (canvas-pos->cell-coord mouse-x mouse-y a)
-        white (:white board)
-        black (:black board)
-        all-pieces (map second (into black white))]
+        ; white (:white board)
+        ; black (:black board)
+        ; all-pieces (map second (into black white))]
+        all-pieces (map second (turn board))]
     ; (get board square)
     (first (filter (fn [{:keys [pos]}] (= pos square)) all-pieces))))
 
