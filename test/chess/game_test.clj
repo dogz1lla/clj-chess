@@ -32,8 +32,7 @@
 
   (t/testing "mate states"
     (t/testing "start of the game, no mate"
-      (t/is (not (let [state (g/init-game)]
-                   (g/mate? state)))))
+      (t/is (not (g/mate? (g/init-game)))))
 
     (t/testing "white king cornered, no mate"
       (t/is (not (let [piece-1 {:piece :king :color :white :pos [8, 8] :id "king1"}
@@ -65,6 +64,22 @@
                              (g/calculate-all-moves)
                              (g/calculate-all-attacks)
                              (g/update-check))]
-              (g/mate? state))))))
+              (g/mate? state))))
+
+    (t/testing "there is a check and nowhere to go but a rook can step in -- no mate"
+      (t/is (not (let [piece-1 {:piece :king :color :white :pos [1, 1] :id "king1"}
+                       piece-2 {:piece :rook :color :white :pos [2, 2] :id "rook1"}
+                       piece-3 {:piece :rook :color :black :pos [8, 1] :id "rook2"}
+                       piece-4 {:piece :bishop :color :black :pos [3, 4] :id "bishop1"}
+                       board (-> {}
+                                 (s/put-piece-on-board piece-1)
+                                 (s/put-piece-on-board piece-2)
+                                 (s/put-piece-on-board piece-3)
+                                 (s/put-piece-on-board piece-4))
+                       state (->> {:board board :turn :white}
+                                  (g/calculate-all-moves)
+                                  (g/calculate-all-attacks)
+                                  (g/update-check))]
+                   (g/mate? state)))))))
 
 (t/run-tests)
