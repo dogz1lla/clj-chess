@@ -200,7 +200,8 @@
                              [4 "grab" (fn [] (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35))]
                              [5 "moves" (fn [] (when @piece-selected? (:moves @piece-selected?)))]
                              [6 "attacks" (fn [] (when @piece-selected? (:attacks @piece-selected?)))]
-                             [7 "square" (fn [] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size))]]]
+                             [7 "square" (fn [] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size))]
+                             [8 "turn" (fn [] (:turn @game-state))]]]
         (q/text (str capt " " (fn)) 10 (+ (* 20 ind) 20))))))
      
 

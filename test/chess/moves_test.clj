@@ -117,6 +117,21 @@
                                        (s/put-piece-on-board pawn-2)
                                        (s/put-piece-on-board pawn-3))
                              state {:board board}]
-                         (m/moves king state)))))))
+                         (m/moves king state)))))
+    (t/testing "nobody around, on the edge"
+      (t/is (= #{[1 1] [1 2] [2 2] [3 2] [3 1]} (let [king {:piece :king :pos [2, 1] :color :white :id "king:white:0"}
+                                                      board (-> {}
+                                                                (s/put-piece-on-board king))
+                                                      state {:board board}]
+                                                  (m/moves king state)))))
+    (t/testing "potential check restricts moves"
+      (t/is (= #{[2 1]}
+               (let [king {:piece :king :pos [1, 1] :color :white :id "king:white:0"}
+                     rook {:piece :rook :pos [8, 2] :color :black :id "rook:black:0"}
+                     board (-> {}
+                               (s/put-piece-on-board king)
+                               (s/put-piece-on-board rook))
+                     state {:board board}]
+                 (m/moves king state)))))))
 
 (t/run-tests)

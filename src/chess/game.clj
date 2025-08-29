@@ -83,12 +83,12 @@
     (not (nil? (:checked-by king)))))
                  
 
+; TODO king cannot move into check positions
 (defn mate?
   "How is mate position defined? It means that a king
   a. has free squares in next to it and
   b. moving to any of those squares will put it in check state.
   NOTE: make sure this is called after all moves and attacks are updated
-
   Logic
   - get all moves and union with all attacks
   - for each of the positions from that union create a new state where the king is in that position
