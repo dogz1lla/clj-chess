@@ -83,7 +83,6 @@
     (not (nil? (:checked-by king)))))
                  
 
-; TODO (next) -- update the mate logic to take into account pieces that can take out the checker
 (defn mate?
   "How is mate position defined? It means that a king
   a. has free squares in next to it and
@@ -96,23 +95,30 @@
   - call update-check on each of those hypothetical states
   - return (every? check? [state-1 state-2 ...])
   "
-  [{:keys [board turn] :as state}]
-  (let [white (:white board)
-        black (:black board)
-        all-pieces (into black white)
-        king (->> all-pieces
+  [{:keys [turn] :as state}]
+  (let [state (refresh-state state)
+        allied-pieces (turn (:board state))
+        king (->> allied-pieces
                   (filter (fn [[_ {:keys [piece]}]] (= :king piece)))
-                  (filter (fn [[_ {:keys [color]}]] (=  turn color)))
                   first
                   second)
-        king-pos (:pos king)
-        future-moves (s/union (:moves king) (:attacks king))
-        future-states (map #(moves/move! king-pos % state) future-moves)
+        get-moves-list (fn [[_ {:keys [pos moves attacks]}]] [pos (s/union moves attacks)])
+        possible-futures (map get-moves-list allied-pieces)
+        calculate-futures-for-piece (fn [[pos moves-attacks]]
+                                      (map #(moves/move! pos % state) moves-attacks))
+        future-states (map calculate-futures-for-piece possible-futures)  ; list of lists of states
+        future-states (reduce concat [] future-states)  ; list of states
+        ; king-pos (:pos king)
+        ; future-moves (s/union (:moves king) (:attacks king))
+        ; future-states (map #(moves/move! king-pos % state) future-moves)
         king-checked? (fn [st] (-> st
                                    (refresh-state)
                                    (check?)))]
     ; NOTE: doing (boolean ...) just to return false instead of nil (for OCD reasons)
-    (and (boolean (seq future-moves)) (every? king-checked? future-states))))
+    ; (and (boolean (seq future-moves)) (every? king-checked? future-states))
+    ; WARNING: this could lead to bugs: if only pawns left and they are all blocked might be empty
+    ; list of moves
+    (every? king-checked? future-states)))
 
 (defn game-over? [state]
   ; NOTE need to switch the turn because this check is supposed to happen after enemy's turn
@@ -219,5 +225,4 @@
                    (update-check))]
     (mate? state))
 
-  (let [state (init-game)]
-    (mate? state)))
+  (mate? (init-game)))
