@@ -58,17 +58,10 @@
                         (filter (fn [{:keys [color]}] (= color opponent-color)))))
         checked-by (when (seq checkers) (:id (first checkers)))]
     (assoc-in state [:board king-color king-id] (assoc king :checked-by checked-by))))
-    
+
 
 (defn switch-turn [{:keys [turn] :as state}]
   (assoc state :turn (case turn :white :black :black :white)))
-  
-
-(defn refresh-state [state]
-  (-> state
-      (calculate-all-moves)
-      (calculate-all-attacks)
-      (update-check)))
   
   
 (defn check? [{:keys [board turn] :as state}]
@@ -81,9 +74,51 @@
                   first
                   second)]
     (not (nil? (:checked-by king)))))
-                 
+        
 
-; TODO king cannot move into check positions
+(defn refresh-state [state]
+  (-> state
+      (calculate-all-moves)
+      (calculate-all-attacks)
+      (update-check)))
+    
+
+(defn remove-invalid-king-moves
+  "NOTE: this function should run after calculate-all-moves and calculate-all-attacks"
+  [{:keys [board turn] :as state}]
+  (let [white (:white board)
+        black (:black board)
+        all-pieces (into black white)
+        king (->> all-pieces
+                  (filter (fn [[_ {:keys [piece]}]] (= :king piece)))
+                  (filter (fn [[_ {:keys [color]}]] (=  turn color)))
+                  first
+                  second)
+        king-id (:id king)
+        king-pos (:pos king)
+        king-color (:color king)
+        king-moves (:moves king)
+        king-attacks (:attacks king)
+        states-after-moves   (map #(make-move   king-pos % state) king-moves)
+        states-after-attacks (map #(make-attack king-pos % state) king-attacks)
+        king-checked? (fn [st] (-> st
+                                   (refresh-state)
+                                   (check?)))
+        valid-moves-states   (map #(not (king-checked? %)) states-after-moves)
+        valid-attacks-states (map #(not (king-checked? %)) states-after-attacks)
+        filter-fn (fn [[valid? move-or-attack]] (when valid? move-or-attack))
+        valid-moves   (->> (map vector valid-moves-states king-moves)
+                           (filter filter-fn)
+                           (map second)
+                           (set))
+        valid-attacks (->> (map vector valid-attacks-states king-attacks)
+                           (filter filter-fn)
+                           (map second)
+                           (set))
+        updated-king (assoc (assoc king :moves valid-moves) :attacks valid-attacks)]
+    (assoc-in state [:board king-color king-id] updated-king)))
+
+
 (defn mate?
   "How is mate position defined? It means that a king
   a. has free squares in next to it and
@@ -108,9 +143,6 @@
                                       (map #(moves/move! pos % state) moves-attacks))
         future-states (map calculate-futures-for-piece possible-futures)  ; list of lists of states
         future-states (reduce concat [] future-states)  ; list of states
-        ; king-pos (:pos king)
-        ; future-moves (s/union (:moves king) (:attacks king))
-        ; future-states (map #(moves/move! king-pos % state) future-moves)
         king-checked? (fn [st] (-> st
                                    (refresh-state)
                                    (check?)))]
@@ -119,6 +151,7 @@
     ; WARNING: this could lead to bugs: if only pawns left and they are all blocked might be empty
     ; list of moves
     (every? king-checked? future-states)))
+
 
 (defn game-over? [state]
   ; NOTE need to switch the turn because this check is supposed to happen after enemy's turn
@@ -163,7 +196,7 @@
               (println "Checkmate!")
               (async/>! c-out next-state))  ; FIXME return something more meaningful
             (do
-              (let [next-state (switch-turn next-state)]
+              (let [next-state (switch-turn (remove-invalid-king-moves next-state))]
                 (async/>! c-out next-state)
                 (recur (async/<! c-in) next-state)))))))
     [c-in c-out]))
@@ -223,6 +256,16 @@
                    (calculate-all-moves)
                    (calculate-all-attacks)
                    (update-check))]
-    (mate? state))
+    (mate? state)
+
+   (let [king {:piece :king :pos [1, 1] :color :white :id "king"}
+         rook {:piece :rook :pos [8, 2] :color :black :id "rook"}
+         board (-> {}
+                   (state/put-piece-on-board king)
+                   (state/put-piece-on-board rook))
+         state (-> {:board board :turn :white}
+                   (refresh-state)
+                   (remove-invalid-king-moves))]
+     (get-in state [:board :white "king" :moves])))
 
   (mate? (init-game)))

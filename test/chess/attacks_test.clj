@@ -19,10 +19,10 @@
 (t/deftest king-attacks
   (t/testing "white kings"
     (t/testing "surrounded, in the corner, nowhere to run"
-       (t/is (= #{[1, 2] [2, 2] [2, 1]} (let [king   {:piece :king :pos [1, 1] :color :white :id "king:white:1"}
-                                              pawn-1 {:piece :pawn :pos [1, 2] :color :black :id "pawn:black:1"}
-                                              pawn-2 {:piece :pawn :pos [2, 2] :color :black :id "pawn:black:2"}
-                                              pawn-3 {:piece :pawn :pos [2, 1] :color :black :id "pawn:black:3"}
+       (t/is (= #{[1, 2] [2, 2] [2, 1]} (let [king   {:piece :king :pos [1, 1] :color :white :id "king1"}
+                                              pawn-1 {:piece :pawn :pos [1, 2] :color :black :id "pawn1"}
+                                              pawn-2 {:piece :pawn :pos [2, 2] :color :black :id "pawn2"}
+                                              pawn-3 {:piece :pawn :pos [2, 1] :color :black :id "pawn3"}
                                               board (-> {}
                                                         (s/put-piece-on-board king)
                                                         (s/put-piece-on-board pawn-1)

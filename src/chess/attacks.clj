@@ -1,30 +1,5 @@
 (ns chess.attacks
   (:require [clojure.set :as s]))
-
-
-; (defn attack!
-;   "TODO: rewrite the history logic (include start and finish squares too)"
-;   [attack-square {:keys [pos color] :as attacking-piece} {:keys [board history captured] :as state}]
-;   (let [occupied-squares (filter second board)  ; when the value for the key is non-nil
-;         all-pieces (map second occupied-squares)
-;         white (filter #(= :white (:color %)) all-pieces)
-;         black (filter #(= :black (:color %)) all-pieces)
-;         ally-pieces (case color :white white :black black)
-;         opponent-color (case color :white :black :black :white)
-;         opponent-pieces (case opponent-color :white white :black black)
-;         target (->> opponent-pieces (filter (fn [{:keys [pos]}] (= attack-square pos))) first)
-;         remaining-opponent-pieces (filterv (fn [p] (not (= target p))) opponent-pieces)
-;         remaining-ally-pieces (filterv (fn [p] (not (= attacking-piece p))) ally-pieces)
-;         moved-attacking-piece (assoc attacking-piece :pos attack-square)
-;         new-board (-> board
-;                       (assoc attack-square moved-attacking-piece)
-;                       (assoc pos nil))]
-;     (if target
-;       (-> state
-;         (assoc :board new-board)
-;         (assoc :captured (conj captured target))
-;         (assoc :history (conj history attacking-piece)))
-;       state)))
      
 
 (defn attack!

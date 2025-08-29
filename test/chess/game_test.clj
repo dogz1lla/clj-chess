@@ -28,7 +28,33 @@
                              (g/calculate-all-moves)
                              (g/calculate-all-attacks)
                              (g/update-check))]
-                (g/check? state)))))
+                (g/check? state))))
+
+    (t/testing "potential check restricts moves"
+      (t/is (= #{[2 1]}
+               (let [king {:piece :king :pos [1, 1] :color :white :id "king:white:0"}
+                     rook {:piece :rook :pos [8, 2] :color :black :id "rook:black:0"}
+                     board (-> {}
+                               (s/put-piece-on-board king)
+                               (s/put-piece-on-board rook))
+                     state (-> {:board board :turn :white}
+                               (g/refresh-state)
+                               (g/remove-invalid-king-moves))]
+                 (get-in state [:board :white "king:white:0" :moves])))))
+
+    (t/testing "potential check restricts attacks"
+      (t/is (= #{}
+               (let [king {:piece :king :pos [1, 1] :color :white :id "king:white:0"}
+                     rook {:piece :rook :pos [8, 2] :color :black :id "rook:black:0"}
+                     pawn {:piece :rook :pos [2, 2] :color :black :id "pawn:black:0"}
+                     board (-> {}
+                               (s/put-piece-on-board king)
+                               (s/put-piece-on-board rook)
+                               (s/put-piece-on-board pawn))
+                     state (-> {:board board :turn :white}
+                               (g/refresh-state)
+                               (g/remove-invalid-king-moves))]
+                 (get-in state [:board :white "king:white:0" :attacks]))))))
 
   (t/testing "mate states"
     (t/testing "start of the game, no mate"
