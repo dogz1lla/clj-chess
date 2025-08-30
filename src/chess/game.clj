@@ -198,7 +198,7 @@
               (println "Checkmate!")
               (async/>! c-out next-state))  ; FIXME return something more meaningful
             (do
-              (let [next-state (switch-turn (remove-invalid-king-moves next-state))]
+              (let [next-state (remove-invalid-king-moves (switch-turn next-state))]
                 (async/>! c-out next-state)
                 (recur (async/<! c-in) next-state)))))))
     [c-in c-out]))
