@@ -42,6 +42,18 @@
                                (g/remove-invalid-king-moves))]
                  (get-in state [:board :white "king:white:0" :moves])))))
 
+    (t/testing "potential check restricts moves 2"
+      (t/is (= #{[3 8] [5 7] [3 7]}
+               (let [king   {:piece :king   :pos [4, 8] :color :white :id "king:white:0"}
+                     knight {:piece :knight :pos [6, 6] :color :black :id "knight:black:0"}
+                     board (-> {}
+                               (s/put-piece-on-board king)
+                               (s/put-piece-on-board knight))
+                     state (-> {:board board :turn :white}
+                               (g/refresh-state)
+                               (g/remove-invalid-king-moves))]
+                 (get-in state [:board :white "king:white:0" :moves])))))
+
     (t/testing "potential check restricts attacks"
       (t/is (= #{}
                (let [king {:piece :king :pos [1, 1] :color :white :id "king:white:0"}

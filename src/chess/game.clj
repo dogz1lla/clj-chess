@@ -178,7 +178,9 @@
                     state (init-game)]
                     
       (if (= (:type msg) :game-start)
-          (let [next-state (refresh-state state)]
+          (let [next-state (-> state
+                               refresh-state
+                               remove-invalid-king-moves)]
             (println "Game start!")
             (async/>! c-out next-state)
             (recur (async/<! c-in) next-state))
