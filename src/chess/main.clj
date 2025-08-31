@@ -129,12 +129,12 @@
       (clear-screen)
       (q/fill 124 149 92)
 
-       ; draw the chess board squares
+      ; draw the chess board squares
       (draw-chess-board cell-size)
 
-       ; drawing possible moves:
-       ; - attacks
-       ; - moves
+      ; drawing possible moves:
+      ; - attacks
+      ; - moves
       (when @piece-selected?
         (draw-possible-moves   (:moves   @piece-selected?) cell-size)
         (draw-possible-attacks (:attacks @piece-selected?) cell-size)
@@ -190,6 +190,10 @@
       ; draw the chess pieces
       (draw-chess-pieces @game-state cell-size)
 
+      ; side panel
+      (q/fill 255 255 255)
+      (q/rect (* 8 cell-size) 0 (* 4 cell-size) (* 8 cell-size))
+
       ; dev monitoring
       (doseq [[ind capt fn] [[0 "button" q/mouse-button]
                              #_[0 "key-as-keyword" q/key-as-keyword]
@@ -202,16 +206,18 @@
                              [6 "attacks" (fn [] (when @piece-selected? (:attacks @piece-selected?)))]
                              [7 "square" (fn [] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size))]
                              [8 "turn" (fn [] (:turn @game-state))]]]
-        (q/text (str capt " " (fn)) 10 (+ (* 20 ind) 20))))))
+        (q/fill 0 0 0)
+        (q/text (str capt " " (fn)) (+ 10 (* 8 cell-size)) (+ (* 20 ind) 20))))))
      
 
+; TODO fix moves coming out of the bounds, add unit tests
 (q/defsketch chess-game
   :title "tetris"
   :settings #(q/smooth 2)
   :setup setup
   :draw (render-fn)
   :features [:keep-on-top]
-  :size [(* 8 cell-size) (* 8 cell-size)]
+  :size [(* 12 cell-size) (* 8 cell-size)]
   :on-close #(println "Game over"))
 
 (comment

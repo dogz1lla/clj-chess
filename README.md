@@ -32,6 +32,7 @@ Chess implementation in clojure. Game rendering via [quil](https://github.com/qu
 - [x] mate functionality
 - [x] use the pre-calculated moves/attacks in the renderer
 - [x] turn switching
+- [ ] render a side panel with game info
 - [ ] pawn promotion
 - [ ] implement en-passant
 - [ ] implement castling
