@@ -211,6 +211,7 @@
      
 
 ; TODO fix moves coming out of the bounds, add unit tests
+; TODO moving a piece shouldnt open the king to check
 (q/defsketch chess-game
   :title "tetris"
   :settings #(q/smooth 2)

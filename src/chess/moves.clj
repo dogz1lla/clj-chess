@@ -53,12 +53,15 @@
                             (let [[x-pos y-pos] pos]
                               (and (= x-pos x) (= y-pos leap))))
                           all-pieces))
+        within-bounds? (fn [[x y]] (and (pos? x) (pos? y) (< x 9) (< y 9)))
         result (if blocked?
                  #{}
                  (if leap-blocked?
                    ideal-moves
                    (s/union ideal-moves leap-move)))]
-    result))
+    (->> result
+         (filter within-bounds?)
+         set)))
 
 (defmethod moves :king [{:keys [pos color]} {:keys [board]}]
   (let [[x y] pos
@@ -66,9 +69,8 @@
                    dy [-1 0 1]
                    :when (or (not= 0 dx) (not= 0 dy))] [dx dy])
         ideal-moves (mapv (fn [[dx dy]] [(+ x dx) (+ dy y)]) dxdy)
-        ideal-moves (filterv (fn [[xx yy]] (and (pos? xx) (pos? yy))) ideal-moves)
-        ideal-moves (filter (fn [[x y]] (and (pos? x) (pos? y))) ideal-moves)
-        ideal-moves (filter (fn [[x y]] (and (< x 9) (< y 9))) ideal-moves)
+        within-bounds? (fn [[x y]] (and (pos? x) (pos? y) (< x 9) (< y 9)))
+        ideal-moves (filter within-bounds? ideal-moves)
         ideal-moves (set ideal-moves)
 
         white (:white board)
@@ -101,9 +103,12 @@
         y-min (if (seq to-the-north) (apply max to-the-north) 0)
         y-max (if (seq to-the-south) (apply min to-the-south) 9)
         ; filter the moves
-        horizontal-moves (set (filter (fn [[x y]] (and (< x-min x) (< x x-max))) horizontal-moves))
-        vertical-moves (set (filter (fn [[x y]] (and (< y-min y) (< y y-max))) vertical-moves))]
-    (s/union horizontal-moves vertical-moves)))
+        horizontal-moves (filter (fn [[x y]] (and (< x-min x) (< x x-max))) horizontal-moves)
+        vertical-moves (filter (fn [[x y]] (and (< y-min y) (< y y-max))) vertical-moves)
+        within-bounds? (fn [[x y]] (and (pos? x) (pos? y) (< x 9) (< y 9)))]
+    (->> (concat horizontal-moves vertical-moves)
+         (filter within-bounds?)
+         (set))))
     
 
 (defmethod moves :bishop [{:keys [pos color]} {:keys [board]}]
@@ -120,11 +125,13 @@
               (map (fn [c] [(* c -1) (* c -1)]) (range 1 9))]
         center-on-piece (fn [ray] (map (fn [[x y]] [(+ x col) (+ y row)]) ray))
         filter-out-of-bounds (fn [ray] (filter (fn [[x y]] (and (pos? x) (pos? y))) ray))
-        filter-move-rays (fn [ray] (take-while #(not (occupied-squares %)) ray))
-        rays (map center-on-piece rays)
-        rays (map filter-out-of-bounds rays)
-        rays (map filter-move-rays rays)]
-    (set (reduce into [] rays))))
+        filter-move-rays (fn [ray] (take-while #(not (occupied-squares %)) ray))]
+      (->> rays
+           (map center-on-piece)
+           (map filter-out-of-bounds)
+           (map filter-move-rays)
+           (reduce into [])
+           (set))))
               
 
 (defmethod moves :knight [{:keys [pos color]} {:keys [board]}]
@@ -156,7 +163,11 @@
                (for [i (range (inc row) 9)]    [col i])
                (for [i (range (dec row) 0 -1)] [col i])]
 
-        filter-out-of-bounds (fn [ray] (filter #(and (pos? (first %)) (pos? (second %))) ray))
+        filter-out-of-bounds (fn [ray] (filter #(and
+                                                  (pos? (first %))
+                                                  (pos? (second %))
+                                                  (< (first %) 9)
+                                                  (< (second %) 9)) ray))
         filter-till-piece    (fn [ray] (take-while (fn [cell] (not (occupied-squares cell))) ray))
 
         rays  (map filter-out-of-bounds rays)

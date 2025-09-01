@@ -4,6 +4,15 @@
             [chess.state :as s]))
 
 
+(t/deftest sanity-checks
+  (t/testing "pawns"
+    (t/testing "first move, no obstacles"
+      (t/is (= #{[1, 6] [1, 5]} (let [pawn  {:piece :pawn :pos [1, 7] :color :white :id "pawn:white:0"}
+                                      board (-> {}
+                                                (s/put-piece-on-board pawn))
+                                      state {:board board}]
+                                   (m/moves pawn state)))))))
+
 (t/deftest pawn-moves
   (t/testing "white pawns"
     (t/testing "first move, no obstacles"
@@ -33,7 +42,14 @@
                          board (-> {}
                                    (s/put-piece-on-board pawn))
                          state {:board board}]
-                      (m/moves pawn state))))))
+                      (m/moves pawn state)))))
+    (t/testing "no out of bounds moves"
+      (not (some (fn [[x y]] (or (neg? x) (< 8 x) (neg? y) (< 8 y)))
+                 (let [pawn  {:piece :pawn :pos [1, 7] :color :white :id "pawn:white:0"}
+                       board (-> {}
+                                 (s/put-piece-on-board pawn))
+                       state {:board board}]
+                     (m/moves pawn state))))))
 
   (t/testing "black pawns"
     (t/testing "first move, no obstacles"
@@ -123,6 +139,21 @@
                                                       board (-> {}
                                                                 (s/put-piece-on-board king))
                                                       state {:board board}]
-                                                  (m/moves king state)))))))
+                                                  (m/moves king state)))))
+
+    (t/testing "no out of bounds moves"
+      (not (some (fn [[x y]] (or (neg? x) (< 8 x) (neg? y) (< 8 y)))
+                 (let [king  {:piece :king :pos [1, 1] :color :white :id "king:white:0"}
+                       board (-> {}
+                                 (s/put-piece-on-board king))
+                       state {:board board}]
+                     (m/moves king state)))))
+    (t/testing "no out of bounds moves 2"
+      (not (some (fn [[x y]] (or (neg? x) (< 8 x) (neg? y) (< 8 y)))
+                 (let [king  {:piece :king :pos [8, 8] :color :white :id "king:white:0"}
+                       board (-> {}
+                                 (s/put-piece-on-board king))
+                       state {:board board}]
+                     (m/moves king state)))))))
 
 (t/run-tests)
