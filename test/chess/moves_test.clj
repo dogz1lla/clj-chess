@@ -156,4 +156,31 @@
                        state {:board board}]
                      (m/moves king state)))))))
 
+(t/deftest bishop-moves
+  (t/testing "no out of bounds moves"
+    (not (some (fn [[x y]] (or (neg? x) (< 8 x) (neg? y) (< 8 y)))
+               (let [bishop  {:piece :bishop :pos [4, 4] :color :white :id "test piece"}
+                     board (-> {}
+                               (s/put-piece-on-board bishop))
+                     state {:board board}]
+                   (m/moves bishop state))))))
+
+(t/deftest queen-moves
+  (t/testing "no out of bounds moves"
+    (not (some (fn [[x y]] (or (neg? x) (< 8 x) (neg? y) (< 8 y)))
+               (let [queen  {:piece :queen :pos [4, 4] :color :white :id "test piece"}
+                     board (-> {}
+                               (s/put-piece-on-board queen))
+                     state {:board board}]
+                   (m/moves queen state))))))
+
+(t/deftest knight-moves
+  (t/testing "no out of bounds moves"
+    (not (some (fn [[x y]] (or (neg? x) (< 8 x) (neg? y) (< 8 y)))
+               (let [knight  {:piece :knight :pos [1, 1] :color :white :id "test piece"}
+                     board (-> {}
+                               (s/put-piece-on-board knight))
+                     state {:board board}]
+                   (m/moves knight state))))))
+
 (t/run-tests)
