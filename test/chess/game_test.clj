@@ -39,7 +39,7 @@
                                (s/put-piece-on-board rook))
                      state (-> {:board board :turn :white}
                                (g/refresh-state)
-                               (g/remove-invalid-king-moves))]
+                               (g/filter-out-checked-moves))]
                  (get-in state [:board :white "king:white:0" :moves])))))
 
     (t/testing "potential check restricts moves 2"
@@ -51,7 +51,7 @@
                                (s/put-piece-on-board knight))
                      state (-> {:board board :turn :white}
                                (g/refresh-state)
-                               (g/remove-invalid-king-moves))]
+                               (g/filter-out-checked-moves))]
                  (get-in state [:board :white "king:white:0" :moves])))))
 
     (t/testing "potential check restricts attacks"
@@ -65,7 +65,7 @@
                                (s/put-piece-on-board pawn))
                      state (-> {:board board :turn :white}
                                (g/refresh-state)
-                               (g/remove-invalid-king-moves))]
+                               (g/filter-out-checked-moves))]
                  (get-in state [:board :white "king:white:0" :attacks]))))))
 
   (t/testing "mate states"

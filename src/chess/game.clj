@@ -83,40 +83,40 @@
       (update-check)))
     
 
-(defn remove-invalid-king-moves
-  "NOTE: this function should run after calculate-all-moves and calculate-all-attacks"
-  [{:keys [board turn] :as state}]
-  (let [white (:white board)
-        black (:black board)
-        all-pieces (into black white)
-        king (->> all-pieces
-                  (filter (fn [[_ {:keys [piece]}]] (= :king piece)))
-                  (filter (fn [[_ {:keys [color]}]] (=  turn color)))
-                  first
-                  second)
-        king-id (:id king)
-        king-pos (:pos king)
-        king-color (:color king)
-        king-moves (:moves king)
-        king-attacks (:attacks king)
-        states-after-moves   (map #(make-move   king-pos % state) king-moves)
-        states-after-attacks (map #(make-attack king-pos % state) king-attacks)
+(defn remove-invalid-moves
+  "Remove moves that would result in check for the king.
+  NOTE: this function should run after calculate-all-moves and calculate-all-attacks"
+  [{:keys [board turn] :as state} piece-id]
+  (let [allied-pieces (turn board)
+        piece (get allied-pieces piece-id)
+        _ (assert piece (str "Piece with id " piece-id "not found (turn " turn ")"))
+        piece-moves (:moves piece)
+        piece-attacks (:attacks piece)
+        piece-pos (:pos piece)
+        states-after-moves   (map #(make-move   piece-pos % state) piece-moves)
+        states-after-attacks (map #(make-attack piece-pos % state) piece-attacks)
         king-checked? (fn [st] (-> st
                                    (refresh-state)
                                    (check?)))
         valid-moves-states   (map #(not (king-checked? %)) states-after-moves)
         valid-attacks-states (map #(not (king-checked? %)) states-after-attacks)
         filter-fn (fn [[valid? move-or-attack]] (when valid? move-or-attack))
-        valid-moves   (->> (map vector valid-moves-states king-moves)
+        valid-moves   (->> (map vector valid-moves-states piece-moves)
                            (filter filter-fn)
                            (map second)
                            (set))
-        valid-attacks (->> (map vector valid-attacks-states king-attacks)
+        valid-attacks (->> (map vector valid-attacks-states piece-attacks)
                            (filter filter-fn)
                            (map second)
                            (set))
-        updated-king (assoc (assoc king :moves valid-moves) :attacks valid-attacks)]
-    (assoc-in state [:board king-color king-id] updated-king)))
+        updated-piece (assoc (assoc piece :moves valid-moves) :attacks valid-attacks)]
+    (assoc-in state [:board turn piece-id] updated-piece)))
+    
+
+(defn filter-out-checked-moves [{:keys [board turn] :as state}]
+  (let [pieces-to-take-turn (turn board)
+        ids (keys pieces-to-take-turn)]
+    (reduce remove-invalid-moves state ids)))
 
 
 (defn mate?
@@ -180,7 +180,7 @@
       (if (= (:type msg) :game-start)
           (let [next-state (-> state
                                refresh-state
-                               remove-invalid-king-moves)]
+                               filter-out-checked-moves)]
             (println "Game start!")
             (async/>! c-out next-state)
             (recur (async/<! c-in) next-state))
@@ -198,7 +198,7 @@
               (println "Checkmate!")
               (async/>! c-out next-state))  ; FIXME return something more meaningful
             (do
-              (let [next-state (remove-invalid-king-moves (switch-turn next-state))]
+              (let [next-state (filter-out-checked-moves (switch-turn next-state))]
                 (async/>! c-out next-state)
                 (recur (async/<! c-in) next-state)))))))
     [c-in c-out]))
@@ -267,7 +267,7 @@
                    (state/put-piece-on-board rook))
          state (-> {:board board :turn :white}
                    (refresh-state)
-                   (remove-invalid-king-moves))]
+                   (filter-out-checked-moves))]
      (get-in state [:board :white "king" :moves])))
 
   (mate? (init-game)))
