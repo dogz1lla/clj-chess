@@ -196,12 +196,11 @@
 
       ; dev monitoring
       (doseq [[ind capt fn] [[0 "button" q/mouse-button]
-                             #_[0 "key-as-keyword" q/key-as-keyword]
-                             #_[1 "pressed?" q/mouse-pressed?]
-                             [1 "piece-selected?" (fn [] @piece-selected?)]
+                             [1 "piece-selected?" (fn [] (when-let [{:keys [piece pos color]} @piece-selected?] {:piece piece :pos pos :color color}))]
                              [2 "x" q/mouse-x]
                              [3 "y" q/mouse-y]
-                             [4 "grab" (fn [] (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35))]
+                             [4 "grab" (fn [] 
+                                         (when-let [{:keys [piece pos color]} (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35)] {:piece piece :pos pos :color color}))]
                              [5 "moves" (fn [] (when @piece-selected? (:moves @piece-selected?)))]
                              [6 "attacks" (fn [] (when @piece-selected? (:attacks @piece-selected?)))]
                              [7 "square" (fn [] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size))]
