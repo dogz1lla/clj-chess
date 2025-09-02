@@ -30,10 +30,12 @@
                (init-pieces {:kind :bishop :white [[3 8] [6 8]] :black [[3 1] [6 1]]})
                (init-pieces {:kind :knight :white [[2 8] [7 8]] :black [[2 1] [7 1]]})
                (init-pieces {:kind :pawn   :white (for [x (range 1 9)] [x 7]) :black (for [x (range 1 9)] [x 2])}))
-    :turn :white})
+    :turn :white
+    :captured {:white {} :black {}}})
   ([pieces]
    {:board (reduce init-pieces {} pieces)
-    :turn :white}))
+    :turn :white
+    :captured {:white {} :black {}}}))
                  
 (comment
   (init-state)

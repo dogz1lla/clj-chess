@@ -31,7 +31,10 @@
         new-board (-> board
                       (assoc attacker-color updated-attacker-allies)
                       (assoc target-color   updated-target-allies))]
-    (assoc state :board new-board)))
+    (-> state
+        (assoc :board new-board)
+        (assoc-in [:captured target-color target-id] target-piece))))
+               
      
 
 

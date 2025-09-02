@@ -68,7 +68,7 @@
   (q/fill 0 0 255)
   (q/rect x0 y0 a a))
 
-(defn chess-puck
+(defn chess-piece-icon
   "Draw a single unit piece."
   [x0 y0 r piece color]
   (let [im (color (piece (q/state :image)))]
@@ -109,7 +109,7 @@
         piece-positions (map :pos all-pieces)
         cell-coords (for [[i j] piece-positions :let [I (* a (dec i)) J (* a (dec j))]] [I J])
         iterator (map vector cell-coords piece-types piece-colors)]
-    (doseq [[[x y] p c] iterator] (chess-puck x y a p c))))
+    (doseq [[[x y] p c] iterator] (chess-piece-icon x y a p c))))
 
 (defn draw-possible-moves [move-list a]
   (let [cell-coords (for [[i j] move-list :let [I (* a (dec i)) J (* a (dec j))]] [I J])]
@@ -118,6 +118,32 @@
 (defn draw-possible-attacks [attack-list a]
   (let [cell-coords (for [[i j] attack-list :let [I (* a (dec i)) J (* a (dec j))]] [I J])]
     (doseq [[x y] cell-coords] (attack-square x y a))))
+
+
+(defn draw-captured-pieces [{:keys [captured]} x0 y0 a]
+  (let [white (->> captured
+                   :white
+                   (map second)
+                   (sort-by :piece))
+        black (->> captured
+                   :black
+                   (map second)
+                   (sort-by :piece))
+        white-piece-types     (map :piece white)
+        white-piece-colors    (map :color white)
+        white-piece-positions (map :pos   white)
+        white-cell-coords     (for [i (range (count white))] [(* a i) 0])
+        black-piece-types     (map :piece black)
+        black-piece-colors    (map :color black)
+        black-piece-positions (map :pos   black)
+        black-cell-coords     (for [i (range (count black))] [(* a i) (* 1.5 a)])
+        iterator-white (map vector white-cell-coords white-piece-types white-piece-colors)
+        iterator-black (map vector black-cell-coords black-piece-types black-piece-colors)]
+    (do
+      (when (seq iterator-white)
+        (doseq [[[x y] p c] iterator-white] (chess-piece-icon (+ x x0) (+ y y0) a p c)))
+      (when (seq iterator-black)
+        (doseq [[[x y] p c] iterator-black] (chess-piece-icon (+ x x0) (+ y y0) a p c))))))
 
 
 (defn render-fn []
@@ -194,6 +220,9 @@
       (q/fill 255 255 255)
       (q/rect (* 8 cell-size) 0 (* 4 cell-size) (* 8 cell-size))
 
+      ; draw captured pieces in the side panel
+      (draw-captured-pieces  @game-state (* 8.5 cell-size) (* 4 cell-size) (/ cell-size 10))
+
       ; dev monitoring
       (doseq [[ind capt fn] [[0 "button" q/mouse-button]
                              [1 "piece-selected?" (fn [] (when-let [{:keys [piece pos color]} @piece-selected?] {:piece piece :pos pos :color color}))]
@@ -204,7 +233,8 @@
                              [5 "moves" (fn [] (when @piece-selected? (:moves @piece-selected?)))]
                              [6 "attacks" (fn [] (when @piece-selected? (:attacks @piece-selected?)))]
                              [7 "square" (fn [] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size))]
-                             [8 "turn" (fn [] (:turn @game-state))]]]
+                             [8 "turn" (fn [] (:turn @game-state))]
+                             [9 "captured" (fn [] (:captured @game-state))]]]
         (q/fill 0 0 0)
         (q/text (str capt " " (fn)) (+ 10 (* 8 cell-size)) (+ (* 20 ind) 20))))))
      
