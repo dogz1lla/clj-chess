@@ -8,7 +8,9 @@
 
 
 (defn init-game []
-  (state/init-state))
+  ; (state/init-state)
+  (state/init-state [{:kind :pawn  :white [[5 2]] :black [[5 7]]}
+                     {:kind :king  :white [[1 1]] :black [[8 8]]}]))
 
 (defn make-move [from to state]
   (moves/move! from to state))
@@ -153,6 +155,12 @@
     (every? king-checked? future-states)))
 
 
+(defn promote-pawn [{:keys [turn board] :as state} pawn-id promote-to]
+  (let [pawn-color (case turn :white :black :black :white)]
+    (assert (get (pawn-color board) pawn-id) (str "Pawn " pawn-id " not found in " pawn-color))
+    (assoc-in state [:board pawn-color pawn-id :piece] promote-to)))
+
+
 (defn game-over? [state]
   ; NOTE need to switch the turn because this check is supposed to happen after enemy's turn
   (mate? (switch-turn state)))  
@@ -191,14 +199,19 @@
                            :move (let [[from to] msg-body]
                                    (make-move from to state))
                            :attack (let [[from to] msg-body]
-                                     (make-attack from to state)))
+                                     (make-attack from to state))
+                           :promote-pawn (let [{:keys [pawn-id piece]} msg-body]
+                                           (promote-pawn state pawn-id piece)))
               next-state (refresh-state next-state)]
           (if (game-over? next-state)
             (do
               (println "Checkmate!")
               (async/>! c-out next-state))  ; FIXME return something more meaningful
             (do
-              (let [next-state (filter-out-checked-moves (switch-turn next-state))]
+              (let [next-state (if (= msg-type :promote-pawn)
+                                 next-state                 ; if pawn promotion -> no turn switch
+                                 (switch-turn next-state))  ; else switch turn before returning
+                    next-state (filter-out-checked-moves next-state)]
                 (async/>! c-out next-state)
                 (recur (async/<! c-in) next-state)))))))
     [c-in c-out]))

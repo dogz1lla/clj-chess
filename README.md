@@ -33,7 +33,12 @@ Chess implementation in clojure. Game rendering via [quil](https://github.com/qu
 - [x] add a visual of captured pieces in the side panel
     + [x] render little icons of the chess pieces
     + [x] sort the icons (alphabetically is fine)
-- [ ] pawn promotion
+- [x] implement a pop-up that blocks the game until a button is pressed
+- [x] pawn promotion
 - [ ] implement en-passant
 - [ ] implement castling
+- [ ] implement draw
 - [ ] game over functionality
+
+# BONUS TODOs
+- [ ] multiplayer over web

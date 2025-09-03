@@ -119,6 +119,31 @@
   (let [cell-coords (for [[i j] attack-list :let [I (* a (dec i)) J (* a (dec j))]] [I J])]
     (doseq [[x y] cell-coords] (attack-square x y a))))
 
+(defn render-promotion-choices [color x0 y0 a]
+  (let [_ (assert (#{:white :black} color))
+        one-n-half-a (+ a (/ a 2))
+        positions (for [i (range 4)] [(+ (* i one-n-half-a) x0) y0])
+        pieces [:queen :knight :bishop :rook]
+        iterator (map vector positions pieces)]
+    (doseq [[[x y] p] iterator] (chess-piece-icon x y a p color))))
+
+(defn highlight-promotion-square [x0 y0 a]
+  (let [one-n-half-a (+ a (/ a 2))
+        enum-positions (for [i (range 4)] [i [(+ (* i one-n-half-a) x0) y0]])
+        hovering-over? (fn [[idx [x y]]]
+                         (let [mx (q/mouse-x)
+                               my (q/mouse-y)
+                               in? (and (<= x mx)
+                                        (< mx (+ x a))
+                                        (<= y my)
+                                        (< my (+ y a)))]
+                           (when in? idx)))]
+    (when-let [idx (some hovering-over? enum-positions)]
+      (let [[xx yy] [(+ (* idx one-n-half-a) x0) y0]
+            pieces [:queen :knight :bishop :rook]]
+        (move-square xx yy a)
+        (get pieces idx)))))
+        
 
 (defn draw-captured-pieces [{:keys [captured]} x0 y0 a]
   (let [white (->> captured
@@ -145,11 +170,18 @@
       (when (seq iterator-black)
         (doseq [[[x y] p c] iterator-black] (chess-piece-icon (+ x x0) (+ y y0) a p c))))))
 
+(defn pawn-up-for-promotion? [{:keys [id piece color]} target-square]
+  (let [[_ y] target-square]
+    (when (and (= piece :pawn)
+               (or (and (= color :white) (= y 1))
+                   (and (= color :black) (= y 8))))
+      id)))
 
 (defn render-fn []
   (let [[in out] (game/run-game!)
         piece-selected? (atom nil)
         selection-cooldown? (atom false)
+        pawn-promotion? (atom nil)
         game-state (atom (async/<!! out))]
     (fn []
       (clear-screen)
@@ -161,7 +193,7 @@
       ; drawing possible moves:
       ; - attacks
       ; - moves
-      (when @piece-selected?
+      (when (and @piece-selected? (not @pawn-promotion?))
         (draw-possible-moves   (:moves   @piece-selected?) cell-size)
         (draw-possible-attacks (:attacks @piece-selected?) cell-size)
         (let [[x y] (:pos @piece-selected?)]
@@ -174,6 +206,7 @@
       (when (and
               @piece-selected?
               (not @selection-cooldown?)
+              (not @pawn-promotion?)
               (= :left (q/mouse-button)))
         (let [square (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size)
               possible-moves   (:moves   @piece-selected?)  ; it is a set of vectors
@@ -182,17 +215,22 @@
           (if (possible-attacks square)  ; if can attack -> attack!
             (let [msg {:type :attack :body [start square]}]
               (async/>!! in msg)
-              (reset! game-state (async/<!! out)))
+              (reset! game-state (async/<!! out))
+              (when-let [id (pawn-up-for-promotion? @piece-selected? square)]
+                (reset! pawn-promotion? id)))
             (when (possible-moves square)  ; else if can move -> move!
               (let [msg {:type :move :body [start square]}]
                 (async/>!! in msg)
-                (reset! game-state (async/<!! out))))))
+                (reset! game-state (async/<!! out))
+                (when-let [id (pawn-up-for-promotion? @piece-selected? square)]
+                  (reset! pawn-promotion? id))))))
         (reset! piece-selected? nil))
 
       ; grab a piece by clicking on it
       (when (and
               (not @selection-cooldown?)
               (not @piece-selected?)
+              (not @pawn-promotion?)
               (grabbed-piece? @game-state (q/mouse-x) (q/mouse-y) cell-size 35)
               (= :left (q/mouse-button)))
         (do
@@ -204,13 +242,14 @@
       (when (and
               @piece-selected?
               (not @selection-cooldown?)
+              (not @pawn-promotion?)
               (q/key-pressed?)
               (= :space (q/key-as-keyword)))
         (reset! piece-selected? nil))
 
       ; highlight the square on hover
       (let [[x y] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size)]
-        (when (and x y)
+        (when (and x y (not @pawn-promotion?))
           (move-square (* cell-size (dec x)) (* cell-size (dec y)) cell-size)))
 
       ; draw the chess pieces
@@ -236,8 +275,21 @@
                              [8 "turn" (fn [] (:turn @game-state))]
                              [9 "captured" (fn [] (:captured @game-state))]]]
         (q/fill 0 0 0)
-        (q/text (str capt " " (fn)) (+ 10 (* 8 cell-size)) (+ (* 20 ind) 20))))))
-     
+        (q/text (str capt " " (fn)) (+ 10 (* 8 cell-size)) (+ (* 20 ind) 20)))
+
+      ; pawn promotion pop up
+      (when-let [pawn-id @pawn-promotion?]
+        (q/fill 255 255 255)
+        (q/rect 100 100 1000 600)
+        (q/fill 0 0 0)
+        (q/text "Choose the promotion" 300 300)
+        (when-let [piece (highlight-promotion-square 300 350 cell-size)]
+          (when (= :left (q/mouse-button))
+            (let [msg {:type :promote-pawn :body {:pawn-id pawn-id :piece piece}}]
+              (async/>!! in msg)
+              (reset! game-state (async/<!! out)))
+            (reset! pawn-promotion? nil)))
+        (render-promotion-choices :white 300 350 cell-size)))))
 
 (q/defsketch chess-game
   :title "tetris"
@@ -256,8 +308,6 @@
   (for [i (range 8) j (range 8) :let [I (* 100 i) J (* 100 j)] :when (or (even? i) (even? j))] [I J])
   ; (grabbed-piece? state/test-game-state 150 350 100 35)
   (grabbed-piece? (state/init-state) 50 150 100 35)
-  (swap! piece-selected? not)
-  (deref piece-selected?)
   (quot 0 100)
   (keep-indexed #(when %2 %1) [true true true false true])
   (nth [] 3)
