@@ -12,11 +12,23 @@
                             (filter (fn [{:keys [pos]}] (= pos attacker-pos)))
                             (first))
         _ (assert attacker-piece (str "No piece found at position " attacker-pos " (attacker)"))
+        attacker-color (:color attacker-piece)
         target-piece   (->> all-pieces
                             (filter (fn [{:keys [pos]}] (= pos target-pos)))
                             (first))
-        _ (assert target-piece (str "No piece found at position " target-pos " (target)"))
-        attacker-color (:color attacker-piece)
+        ; NOTE: there is no assert for the target-piece being in the target-pos because of the
+        ; en-passant
+        target-piece (if target-piece
+                       ; no en-passant
+                       target-piece
+                       ; en-passant -> we need to look for the target pawn in a neighboring cell
+                       (let [[tx ty] target-pos
+                             actual-pawn-pos (case attacker-color
+                                               :white [tx (inc ty)]
+                                               :black [tx (dec ty)])]
+                         (->> all-pieces
+                              (filter (fn [{:keys [pos]}] (= actual-pawn-pos pos)))
+                              (first))))
         target-color   (:color target-piece)
         _ (assert (not= attacker-color target-color) "Can't attack your ally!")
         attacker-id (:id attacker-piece)
@@ -26,13 +38,19 @@
         moved-attacker-piece (assoc attacker-piece :pos target-pos)
 
         updated-attacker-allies (assoc attacker-allies attacker-id moved-attacker-piece)
-        updated-target-allies   (dissoc target-allies target-id)  ; remove the target (TODO: move to captured)
+        updated-target-allies   (dissoc target-allies target-id)  ; remove the target
 
         new-board (-> board
                       (assoc attacker-color updated-attacker-allies)
-                      (assoc target-color   updated-target-allies))]
+                      (assoc target-color   updated-target-allies))
+        move-history-entry {:type :attack
+                            :piece-id attacker-id
+                            :color attacker-color
+                            :start attacker-pos
+                            :finish target-pos}]
     (-> state
         (assoc :board new-board)
+        (assoc :last-move move-history-entry)
         (assoc-in [:captured target-color target-id] target-piece))))
                
      
@@ -40,7 +58,7 @@
 
 (defmulti attacks :piece)
 
-(defmethod attacks :pawn [{:keys [pos color]} {:keys [board history] :as state}]
+(defmethod attacks :pawn [{:keys [pos color]} {:keys [board history last-move] :as state}]
   (let [[x y] pos
         attack-squares (case color
                           :white (if (> y 1)
@@ -66,27 +84,28 @@
                                (filter (fn [p] (attack-squares p)))
                                set)
         ; TODO: add en-passante
-        en-passante #{} #_(let [last-moved-piece (last history)]  ; en-passante
-                            (if (and
-                                  ; NOTE: this assumes that there is no piece behind the pawn in question
-                                  ; but if everything is coded correctly it cant be the case because then
-                                  ; the pawn couldnt have moved two squares up
-                                  (= :pawn (:piece last-moved-piece))
-                                  (or
-                                    (and
-                                      ; white pawn on 4th rank moved last and we are playing as black pawn
-                                      (= :white (:color last-moved-piece))
-                                      (= :black color)
-                                      (= 4 (first (:pos last-moved-piece)) y))
-                                    (and
-                                      ; black pawn on 5th rank moved last and we are playing as white pawn
-                                      (= :black (:color last-moved-piece))
-                                      (= :white color)
-                                      (= 5 (first (:pos last-moved-piece)) y)))
-                                  (:leap last-moved-piece)  ; make sure that it jumped instead of 2x1 moves
-                                  (= 1 (clojure.core/abs (- x (second (:pos last-moved-piece))))))
-                              [(assoc last-moved-piece :enpassante true)]
-                              []))]
+        en-passante (if last-move
+                      (let [last-moved-piece-id (:piece-id last-move)
+                            last-moved-piece-color (:color last-move)
+                            last-moved-piece (get (last-moved-piece-color board) last-moved-piece-id)
+                            [x1 y1] (:start  last-move)
+                            [x2 y2] (:finish last-move)
+                            _ (assert (and x1 x2 y1 y2 last-moved-piece last-moved-piece-color))]
+                       (if (and
+                             #_(not= last-moved-piece-color color)  ; should always be true
+                             (= :pawn (:piece last-moved-piece))
+                             (or (and
+                                   (= color :white)
+                                   (= y1 2)
+                                   (= y2 4))
+                                 (and
+                                   (= color :black)
+                                   (= y1 7)
+                                   (= y2 5)))
+                             (= 1 (clojure.core/abs (- x x2))))
+                         #{[x2 (case color  :white (dec y2) :black (inc y2))]}
+                         #{}))
+                     #{})]
     (s/union potential-attacks en-passante)))
 
 (defmethod attacks :king [{:keys [pos color] :as piece} {:keys [board] :as state}]

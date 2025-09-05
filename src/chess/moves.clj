@@ -17,8 +17,16 @@
         _ (assert piece (str "Piece at postion " start " not found"))
         piece-id (:id piece)
         piece-color (:color piece)
-        _ (assert (and piece-id piece-color))]
-    (assoc-in state [:board piece-color piece-id :pos] finish)))
+        _ (assert (and piece-id piece-color))
+        move-history-entry {:type :move
+                            :piece-id piece-id
+                            :color piece-color
+                            :start start
+                            :finish finish}]
+    (-> state
+        (assoc-in [:board piece-color piece-id :pos] finish)
+        (assoc :last-move move-history-entry))
+    #_(assoc-in state [:board piece-color piece-id :pos] finish)))
 
 (defmulti moves :piece)
 

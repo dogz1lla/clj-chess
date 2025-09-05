@@ -8,9 +8,13 @@
 
 
 (defn init-game []
-  ; (state/init-state)
-  (state/init-state [{:kind :pawn  :white [[5 2]] :black [[5 7]]}
-                     {:kind :king  :white [[1 1]] :black [[8 8]]}]))
+  (state/init-state))
+  ; ; pawn promotion
+  ; (state/init-state [{:kind :pawn  :white [[5 2]] :black [[5 7]]}
+  ;                    {:kind :king  :white [[1 1]] :black [[8 8]]}])
+  ; ; en-passant
+  ; (state/init-state [{:kind :pawn  :white [[5 4]] :black [[4 2]]}
+  ;                    {:kind :king  :white [[1 1]] :black [[8 8]]}]))
 
 (defn make-move [from to state]
   (moves/move! from to state))

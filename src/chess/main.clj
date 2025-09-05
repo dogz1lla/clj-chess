@@ -273,7 +273,8 @@
                              [6 "attacks" (fn [] (when @piece-selected? (:attacks @piece-selected?)))]
                              [7 "square" (fn [] (canvas-pos->cell-coord (q/mouse-x) (q/mouse-y) cell-size))]
                              [8 "turn" (fn [] (:turn @game-state))]
-                             [9 "captured" (fn [] (:captured @game-state))]]]
+                             [9 "captured" (fn [] (:captured @game-state))]
+                             [10 "last move" (fn [] (:last-move @game-state))]]]
         (q/fill 0 0 0)
         (q/text (str capt " " (fn)) (+ 10 (* 8 cell-size)) (+ (* 20 ind) 20)))
 
