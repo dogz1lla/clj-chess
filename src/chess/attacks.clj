@@ -97,11 +97,13 @@
                              (or (and
                                    (= color :white)
                                    (= y1 2)
-                                   (= y2 4))
+                                   (= y2 4)
+                                   (= y  4))
                                  (and
                                    (= color :black)
                                    (= y1 7)
-                                   (= y2 5)))
+                                   (= y2 5)
+                                   (= y  5)))
                              (= 1 (clojure.core/abs (- x x2))))
                          #{[x2 (case color  :white (dec y2) :black (inc y2))]}
                          #{}))
