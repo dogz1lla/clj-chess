@@ -85,7 +85,6 @@
         black (:black board)
         all-pieces (map second (into black white))
         occupied-squares (set (map :pos all-pieces))]
-        ; occupied-squares (set (map first (filter second board)))]  ; when the value for the key is non-nil
     (s/difference ideal-moves occupied-squares)))
 
 (defmethod moves :rook [{:keys [pos color]} {:keys [board]}]

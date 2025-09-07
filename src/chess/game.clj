@@ -159,11 +159,78 @@
     (every? king-checked? future-states)))
 
 
+; special game state: pawn promotion
+(defn pawn-up-for-promotion? [{:keys [id piece color]} target-square]
+  (let [[_ y] target-square]
+    (when (and (= piece :pawn)
+               (or (and (= color :white) (= y 1))
+                   (and (= color :black) (= y 8))))
+      id)))
+
 (defn promote-pawn [{:keys [turn board] :as state} pawn-id promote-to]
   (let [pawn-color (case turn :white :black :black :white)]
     (assert (get (pawn-color board) pawn-id) (str "Pawn " pawn-id " not found in " pawn-color))
     (assoc-in state [:board pawn-color pawn-id :piece] promote-to)))
 
+
+; TODO: write unit tests
+; special game state: castling
+;; long castling
+(defn long-castling? [{:keys [turn board] :as state}]
+  (let [pieces (turn board)
+        king (->> pieces
+                  (filter (fn [[_ {:keys [piece]}]] (= :king piece)))
+                  first
+                  second)
+        king-moved? (:moved? king)
+        king-pos (:pos king)
+        rooks (->> pieces
+                   (filter (fn [[_ {:keys [piece]}]] (= :rook piece)))
+                   (map second)
+                   (remove :moved?))
+        left-rook-pos  (case turn :white [8 1] :black [1 1])
+        left-rook  (->> rooks
+                        (filter (fn [{:keys [pos]}] (= pos left-rook-pos)))
+                        first)
+        king-checked? (fn [st] (-> st
+                                   (refresh-state)
+                                   (check?)))]
+    (when (and (not king-moved?) (not (check? state)) left-rook)
+      (let [squares-between  (set (case turn :white [[8 2] [8 3] [8 4]] :black [[1 2] [1 3] [1 4]]))
+            squares-to-check (set (case turn :white [[8 3] [8 4]] :black [[1 3] [1 4]]))
+            pieces-in-between? (some (fn [[_ {:keys [pos]}]] (squares-between pos)) pieces)
+            future-states (map #(moves/move! king-pos % state) squares-to-check)]
+        (and (not pieces-in-between?) (not (some king-checked? future-states)))))))
+
+
+;; short castling
+(defn short-castling? [{:keys [turn board] :as state}]
+  (let [pieces (turn board)
+        king (->> pieces
+                  (filter (fn [[_ {:keys [piece]}]] (= :king piece)))
+                  first
+                  second)
+        king-moved? (:moved? king)
+        king-pos (:pos king)
+        rooks (->> pieces
+                   (filter (fn [[_ {:keys [piece]}]] (= :rook piece)))
+                   (map second)
+                   (remove :moved?))
+        right-rook-pos (case turn :white [8 8] :black [1 8])
+        squares-to-the-right (case turn :white [[8 6] [8 7]] :black [[1 6] [1 7]])
+        right-rook (->> rooks
+                        (filter (fn [{:keys [pos]}] (= pos right-rook-pos)))
+                        first)
+        king-checked? (fn [st] (-> st
+                                   (refresh-state)
+                                   (check?)))]
+    (when (and (not king-moved?) (not (check? state)) right-rook)
+      (let [squares-between  (set (case turn :white [[8 3] [8 4]] :black [[1 3] [1 4]]))
+            squares-to-check squares-between
+            pieces-in-between? (some (fn [[_ {:keys [pos]}]] (squares-between pos)) pieces)
+            future-states (map #(moves/move! king-pos % state) squares-to-check)]
+        (and (not pieces-in-between?) (not (some king-checked? future-states)))))))
+          
 
 (defn game-over? [state]
   ; NOTE need to switch the turn because this check is supposed to happen after enemy's turn
