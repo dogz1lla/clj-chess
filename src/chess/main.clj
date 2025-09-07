@@ -170,13 +170,6 @@
       (when (seq iterator-black)
         (doseq [[[x y] p c] iterator-black] (chess-piece-icon (+ x x0) (+ y y0) a p c))))))
 
-(defn pawn-up-for-promotion? [{:keys [id piece color]} target-square]
-  (let [[_ y] target-square]
-    (when (and (= piece :pawn)
-               (or (and (= color :white) (= y 1))
-                   (and (= color :black) (= y 8))))
-      id)))
-
 (defn render-fn []
   (let [[in out] (game/run-game!)
         piece-selected? (atom nil)
@@ -216,13 +209,13 @@
             (let [msg {:type :attack :body [start square]}]
               (async/>!! in msg)
               (reset! game-state (async/<!! out))
-              (when-let [id (pawn-up-for-promotion? @piece-selected? square)]
+              (when-let [id (game/pawn-up-for-promotion? @piece-selected? square)]
                 (reset! pawn-promotion? id)))
             (when (possible-moves square)  ; else if can move -> move!
               (let [msg {:type :move :body [start square]}]
                 (async/>!! in msg)
                 (reset! game-state (async/<!! out))
-                (when-let [id (pawn-up-for-promotion? @piece-selected? square)]
+                (when-let [id (game/pawn-up-for-promotion? @piece-selected? square)]
                   (reset! pawn-promotion? id))))))
         (reset! piece-selected? nil))
 
