@@ -188,7 +188,7 @@
                    (filter (fn [[_ {:keys [piece]}]] (= :rook piece)))
                    (map second)
                    (remove :moved?))
-        left-rook-pos  (case turn :white [8 1] :black [1 1])
+        left-rook-pos  (case turn :white [1 8] :black [1 1])
         left-rook  (->> rooks
                         (filter (fn [{:keys [pos]}] (= pos left-rook-pos)))
                         first)
@@ -196,8 +196,8 @@
                                    (refresh-state)
                                    (check?)))]
     (when (and (not king-moved?) (not (check? state)) left-rook)
-      (let [squares-between  (set (case turn :white [[8 2] [8 3] [8 4]] :black [[1 2] [1 3] [1 4]]))
-            squares-to-check (set (case turn :white [[8 3] [8 4]] :black [[1 3] [1 4]]))
+      (let [squares-between  (set (case turn :white [[2 8] [3 8] [4 8]] :black [[2 1] [3 1] [4 1]]))
+            squares-to-check (set (case turn :white [      [3 8] [4 8]] :black [      [3 1] [4 1]]))
             pieces-in-between? (some (fn [[_ {:keys [pos]}]] (squares-between pos)) pieces)
             future-states (map #(moves/move! king-pos % state) squares-to-check)]
         (and (not pieces-in-between?) (not (some king-checked? future-states)))))))
@@ -216,8 +216,8 @@
                    (filter (fn [[_ {:keys [piece]}]] (= :rook piece)))
                    (map second)
                    (remove :moved?))
-        right-rook-pos (case turn :white [8 8] :black [1 8])
-        squares-to-the-right (case turn :white [[8 6] [8 7]] :black [[1 6] [1 7]])
+        right-rook-pos (case turn :white [8 8] :black [8 1])
+        squares-to-the-right (case turn :white [[6 8] [7 8]] :black [[6 1] [7 1]])
         right-rook (->> rooks
                         (filter (fn [{:keys [pos]}] (= pos right-rook-pos)))
                         first)
@@ -225,7 +225,7 @@
                                    (refresh-state)
                                    (check?)))]
     (when (and (not king-moved?) (not (check? state)) right-rook)
-      (let [squares-between  (set (case turn :white [[8 3] [8 4]] :black [[1 3] [1 4]]))
+      (let [squares-between  (set (case turn :white [[6 8] [7 8]] :black [[6 1] [7 1]]))
             squares-to-check squares-between
             pieces-in-between? (some (fn [[_ {:keys [pos]}]] (squares-between pos)) pieces)
             future-states (map #(moves/move! king-pos % state) squares-to-check)]
