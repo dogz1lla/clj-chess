@@ -136,6 +136,99 @@
                                   (g/calculate-all-moves)
                                   (g/calculate-all-attacks)
                                   (g/update-check))]
-                   (g/mate? state)))))))
+                   (g/mate? state))))))
+
+  (t/testing "castling"
+    (t/testing "castling available"
+      (let [pieces [{:kind :king :white [[5 8]]       :black [[5 1]]}
+                    {:kind :rook :white [[1 8] [8 8]] :black [[1 1] [8 1]]}]
+            state (s/init-state pieces)]
+        (t/testing "short, white"
+          (t/is (g/short-castling? state)))
+        (t/testing "long, white"
+          (t/is (g/long-castling? state)))
+        (t/testing "short, black"
+          (t/is (g/short-castling? (g/switch-turn state))))
+        (t/testing "long, black"
+          (t/is (g/long-castling? (g/switch-turn state))))))
+
+    (t/testing "castling available, but piece moved"
+      (let [pieces [{:kind :king :white [[5 8]]       :black [[5 1]]}
+                    {:kind :rook :white [[1 8] [8 8]] :black [[1 1] [8 1]]}]
+            state (s/init-state pieces)]
+        (t/testing "white king moved"
+          (t/is (not (-> state
+                         (assoc-in [:board :white ":king:white:0" :moved?] true)
+                         (g/short-castling?)))))
+        (t/testing "white rook moved (right)"
+          (t/is (not (-> state
+                         (assoc-in [:board :white ":rook:white:1" :moved?] true)
+                         (g/short-castling?)))))
+        (t/testing "white rook moved (left)"
+          (t/is (not (-> state
+                         (assoc-in [:board :white ":rook:white:0" :moved?] true)
+                         (g/long-castling?)))))
+        (t/testing "black king moved"
+          (t/is (not (-> state
+                         (assoc-in [:board :black ":king:black:0" :moved?] true)
+                         (g/switch-turn)
+                         (g/short-castling?)))))
+        (t/testing "black rook moved (right)"
+          (t/is (not (-> state
+                         (assoc-in [:board :black ":rook:black:1" :moved?] true)
+                         (g/switch-turn)
+                         (g/short-castling?)))))
+        (t/testing "black rook moved (left)"
+          (t/is (not (-> state
+                         (assoc-in [:board :black ":rook:black:0" :moved?] true)
+                         (g/switch-turn)
+                         (g/long-castling?)))))))
+    (t/testing "castling available, but one of the squares is checked"
+      (let [pieces [{:kind :king :white [[5 8]]       :black [[5 1]]}
+                    {:kind :rook :white [[1 8] [8 8]] :black [[1 1] [8 1]]}
+                    {:kind :pawn :white [[5 2]] :black [[5 7]]}]
+            state (s/init-state pieces)]
+        (t/testing "king's short move is checked, white"
+          (t/is (not (-> state
+                         (g/refresh-state)
+                         (g/short-castling?)))))
+        (t/testing "king's long move is checked, white"
+          (t/is (not (-> state
+                         (g/refresh-state)
+                         (g/long-castling?)))))
+        (t/testing "king's short move is checked, black"
+          (t/is (not (-> state
+                         (g/refresh-state)
+                         (g/switch-turn)
+                         (g/short-castling?)))))
+        (t/testing "king's long move is checked, black"
+          (t/is (not (-> state
+                         (g/refresh-state)
+                         (g/switch-turn)
+                         (g/long-castling?)))))))
+    (t/testing "castling available, but king is checked"
+      (let [pieces [{:kind :king :white [[5 8]]       :black [[5 1]]}
+                    {:kind :rook :white [[1 8] [8 8]] :black [[1 1] [8 1]]}
+                    {:kind :pawn :white [[4 2]] :black [[4 7]]}]
+            state (s/init-state pieces)]
+        (t/testing "short, white"
+          (t/is (not (-> state
+                         (g/refresh-state)
+                         (g/short-castling?)))))
+        (t/testing "long, white"
+          (t/is (not (-> state
+                         (g/refresh-state)
+                         (g/long-castling?)))))
+        (t/testing "short, black"
+          (t/is (not (-> state
+                         (g/switch-turn)
+                         (g/refresh-state)
+                         (g/short-castling?)))))
+        (t/testing "long, black"
+          (t/is (not (-> state
+                         (g/switch-turn)
+                         (g/refresh-state)
+                         (g/long-castling?)))))))))
+              
 
 (t/run-tests)
