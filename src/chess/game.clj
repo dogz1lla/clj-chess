@@ -8,13 +8,16 @@
 
 
 (defn init-game []
-  (state/init-state))
+  ; (state/init-state)
   ; ; pawn promotion
   ; (state/init-state [{:kind :pawn  :white [[5 2]] :black [[5 7]]}
   ;                    {:kind :king  :white [[1 1]] :black [[8 8]]}])
   ; ; en-passant
   ; (state/init-state [{:kind :pawn  :white [[5 4]] :black [[4 2]]}
   ;                    {:kind :king  :white [[1 1]] :black [[8 8]]}]))
+  ; castling
+  (state/init-state [{:kind :rook  :white [[1 8] [8 8]] :black [[1 1] [8 1]]}
+                     {:kind :king  :white [[5 8]] :black [[5 1]]}]))
 
 (defn make-move [from to state]
   (moves/move! from to state))
@@ -249,11 +252,9 @@
                               (case turn :white #{[3 8]} :black #{[3 1]})
                              #{})]
       (-> state
-        (assoc-in [board turn king-id :short-castling?] short-castling-open?)
-        (assoc-in [board turn king-id :long-castling?] long-castling-open?)
-        (update-in [board turn king-id :moves] (fn [s] (s/union s short-castling-move long-castling-move))))))
-                           
-        
+        (assoc-in [:board turn king-id :short-castling?] short-castling-open?)
+        (assoc-in [:board turn king-id :long-castling?] long-castling-open?)
+        (update-in [:board turn king-id :moves] (fn [s] (s/union s short-castling-move long-castling-move))))))
           
 
 (defn game-over? [state]
@@ -283,7 +284,8 @@
       (if (= (:type msg) :game-start)
           (let [next-state (-> state
                                refresh-state
-                               filter-out-checked-moves)]
+                               filter-out-checked-moves
+                               add-castling-moves)]
             (println "Game start!")
             (async/>! c-out next-state)
             (recur (async/<! c-in) next-state))
@@ -306,7 +308,9 @@
               (let [next-state (if (= msg-type :promote-pawn)
                                  next-state                 ; if pawn promotion -> no turn switch
                                  (switch-turn next-state))  ; else switch turn before returning
-                    next-state (filter-out-checked-moves next-state)]
+                    next-state (-> next-state
+                                   filter-out-checked-moves
+                                   add-castling-moves)]
                 (async/>! c-out next-state)
                 (recur (async/<! c-in) next-state)))))))
     [c-in c-out]))

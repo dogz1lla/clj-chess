@@ -25,8 +25,8 @@
                             :finish finish}]
     (-> state
         (assoc-in [:board piece-color piece-id :pos] finish)
-        (assoc :last-move move-history-entry))
-    #_(assoc-in state [:board piece-color piece-id :pos] finish)))
+        (assoc-in [:board piece-color piece-id :moved?] true)
+        (assoc :last-move move-history-entry))))
 
 (defmulti moves :piece)
 
