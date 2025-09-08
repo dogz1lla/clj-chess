@@ -173,7 +173,6 @@
     (assoc-in state [:board pawn-color pawn-id :piece] promote-to)))
 
 
-; TODO: write unit tests
 ; special game state: castling
 ;; long castling
 (defn long-castling? [{:keys [turn board] :as state}]
@@ -230,6 +229,31 @@
             pieces-in-between? (some (fn [[_ {:keys [pos]}]] (squares-between pos)) pieces)
             future-states (map #(moves/move! king-pos % state) squares-to-check)]
         (and (not pieces-in-between?) (not (some king-checked? future-states)))))))
+
+; TODO: dont forget to update :moved? in the king/rook after their first move
+(defn add-castling-moves
+  "NOTE: has to be run after calculate-all-moves"
+  [{:keys [turn board] :as state}]
+  (let [pieces (turn board)
+        king (->> pieces
+                  (filter (fn [[_ {:keys [piece]}]] (= :king piece)))
+                  first
+                  second)
+        king-id (:id king)
+        short-castling-open? (short-castling? state)
+        long-castling-open? (long-castling? state)
+        short-castling-move (if short-castling-open?
+                              (case turn :white #{[7 8]} :black #{[7 1]})
+                              #{})
+        long-castling-move (if long-castling-open?
+                              (case turn :white #{[3 8]} :black #{[3 1]})
+                             #{})]
+      (-> state
+        (assoc-in [board turn king-id :short-castling?] short-castling-open?)
+        (assoc-in [board turn king-id :long-castling?] long-castling-open?)
+        (update-in [board turn king-id :moves] (fn [s] (s/union s short-castling-move long-castling-move))))))
+                           
+        
           
 
 (defn game-over? [state]

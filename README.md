@@ -38,6 +38,12 @@ Chess implementation in clojure. Game rendering via [quil](https://github.com/qu
 - [x] implement some kind of history of moves (just last move?)
 - [x] implement en-passant
 - [ ] implement castling
+    + [x] short castling pred
+    + [x] long castling pred
+    + [x] set :moved? key in king and rook after they move
+    + [x] fn that adds castling squares to the moves of the king
+    + [ ] move! fn needs to somehow know that a move is a castling move and that it needs to move
+    the rook too;
 - [ ] implement draw
 - [ ] game over functionality
 
