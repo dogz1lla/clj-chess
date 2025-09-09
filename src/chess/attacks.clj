@@ -3,7 +3,6 @@
      
 
 (defn attack!
-  "TODO: rewrite the history logic (include start and finish squares too)"
   [attacker-pos target-pos {:keys [board] :as state}]
   (let [white (:white board)
         black (:black board)
@@ -83,7 +82,6 @@
                                (map :pos)
                                (filter (fn [p] (attack-squares p)))
                                set)
-        ; TODO: add en-passante
         en-passante (if last-move
                       (let [last-moved-piece-id (:piece-id last-move)
                             last-moved-piece-color (:color last-move)

@@ -233,7 +233,6 @@
             future-states (map #(moves/move! king-pos % state) squares-to-check)]
         (and (not pieces-in-between?) (not (some king-checked? future-states)))))))
 
-; TODO: dont forget to update :moved? in the king/rook after their first move
 (defn add-castling-moves
   "NOTE: has to be run after calculate-all-moves"
   [{:keys [turn board] :as state}]
