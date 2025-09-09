@@ -9,7 +9,7 @@
 (defn move!
   "Find the piece by the having (:pos piece) = start, then switch :pos to finish.
   TODO: add an assert that piece is not nil"
-  [start finish {:keys [board] :as state}]
+  [start finish {:keys [board turn] :as state}]
   (let [white (:white board)
         black (:black board)
         all-pieces (map second (into black white))
@@ -22,7 +22,30 @@
                             :piece-id piece-id
                             :color piece-color
                             :start start
-                            :finish finish}]
+                            :finish finish}
+        ; TODO: add unit tests for castling move
+        state (cond  ;; special case castling -> need to move the rook too if that is the case
+                (and ;; white king, short castling
+                    (= (:piece piece) :king)
+                    (:short-castling? piece)
+                    (= turn :white)
+                    (= finish [7 8])) (move! [8 8] [6 8] state)
+                (and ;; white king, long castling
+                    (= (:piece piece) :king)
+                    (:long-castling? piece)
+                    (= turn :white)
+                    (= finish [3 8])) (move! [1 8] [4 8] state)
+                (and ;; black king, short castling
+                    (= (:piece piece) :king)
+                    (:short-castling? piece)
+                    (= turn :black)
+                    (= finish [7 1])) (move! [8 1] [6 1] state)
+                (and ;; black king, long castling
+                    (= (:piece piece) :king)
+                    (:long-castling? piece)
+                    (= turn :black)
+                    (= finish [3 1])) (move! [1 1] [4 1] state)
+                :else state)]
     (-> state
         (assoc-in [:board piece-color piece-id :pos] finish)
         (assoc-in [:board piece-color piece-id :moved?] true)
