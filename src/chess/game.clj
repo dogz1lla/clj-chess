@@ -161,6 +161,11 @@
     ; list of moves
     (every? king-checked? future-states)))
 
+(defn checkmate? [state]
+  (and (check? state) (mate? state)))
+
+(defn stalemate? [state]
+  (and (not (check? state)) (mate? state)))
 
 ; special game state: pawn promotion
 (defn pawn-up-for-promotion? [{:keys [id piece color]} target-square]
@@ -258,7 +263,9 @@
 
 (defn game-over? [state]
   ; NOTE need to switch the turn because this check is supposed to happen after enemy's turn
-  (mate? (switch-turn state)))  
+  (let [next-state (switch-turn state)]
+    (or (checkmate? next-state)
+        (stalemate? next-state))))  
 
 
 (defn run-game!
