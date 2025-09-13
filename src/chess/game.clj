@@ -261,11 +261,75 @@
         (update-in [:board turn king-id :moves] (fn [s] (s/union s short-castling-move long-castling-move))))))
           
 
+(comment
+  "I need to check which squares are available for the kings to explore and if these sets have no
+  overlaps then it is a deadlock.
+  Some sort of graph traversal problem.
+  - start at start_node
+  - take next available node
+  - if it is seen, take next available node
+  - if there is no available nodes left then go back (use a stack)")
+
+(defn dfs 
+  "Pseudo code (taken from https://www.cs.toronto.edu/~heap/270F02/node36.html):
+  ---------------------------------------------------------------
+  DFS(G,v)   ( v is the vertex where the search starts )
+         Stack S := {};   ( start with an empty stack )
+         for each vertex u, set visited[u] := false;
+         push S, v;
+         while (S is not empty) do
+            u := pop S;
+            if (not visited[u]) then
+               visited[u] := true;
+               for each unvisited neighbour w of u
+                  push S, w;
+            end if
+         end while
+      END DFS()
+  "
+  [graph start neighbors-fn]
+  (loop [stack (list start)
+         visited #{}]
+    (if (not (seq stack))
+      visited
+      (let [current (first stack)
+            visited? (fn [v] (visited v))]
+        (if (visited? current)
+          (recur (rest stack) visited)
+          (recur 
+            (reduce conj stack (remove visited? (neighbors-fn graph current)))
+            (conj visited current)))))))
+            
+
+; TODO: implement pawn deadlock logic (dfs)
+(defn explore-board [{:keys [turn board] :as state} piece-id]
+  (let [pieces (turn board)
+        _ (assert (get pieces piece-id) (str "Piece " piece-id " not found"))]
+      nil))
+
+(defn dead-position? [{:keys [turn board] :as state}]
+  (let [white (:white board)
+        black (:black board)
+        all-pieces (into black white)
+        all-pieces (map second all-pieces)
+        piece-kinds (sort (map :piece all-pieces))
+        kk?  (= piece-kinds `(        :king :king))
+        bkk? (= piece-kinds `(:bishop :king :king))
+        hkk? (= piece-kinds `(:king :king :knight))
+        insufficient-material? (or kk? bkk? hkk?)
+        ; below is the deadlock related stuff
+        pawn-deadlock? true  ; FIXME
+        deadlock? (and (= {:pawn :king} (set piece-kinds))
+                       pawn-deadlock?)]
+    (or insufficient-material? deadlock?)))
+
+
 (defn game-over? [state]
   ; NOTE need to switch the turn because this check is supposed to happen after enemy's turn
   (let [next-state (switch-turn state)]
     (or (checkmate? next-state)
-        (stalemate? next-state))))  
+        (stalemate? next-state)  
+        (dead-position? next-state))))
 
 
 (defn run-game!
@@ -388,4 +452,18 @@
                    (filter-out-checked-moves))]
      (get-in state [:board :white "king" :moves])))
 
-  (mate? (init-game)))
+  (mate? (init-game))
+  (let [[xmax ymax] [3 3]  ;; dfs test on a simple rect lattice with south/north/west/east moves
+        g (for [i (range xmax) j (range ymax)] [i j])
+        s [0 0]
+        f (fn [_ [x y]] (let [dxdy (for [i [-1 0 +1] j [-1 0 +1]] [i j])
+                              ns (for [[dx dy] dxdy
+                                       :let [[xnew ynew] [(+ x dx) (+ y dy)]]
+                                       :when (and
+                                               (not= (abs dx) (abs dy))
+                                               (< -1 xnew) (< xnew xmax)
+                                               (< -1 ynew) (< ynew ymax))] [xnew ynew])]
+                          ns))]
+                                       
+                                   
+   (dfs g s f)))
