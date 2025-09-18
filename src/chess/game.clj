@@ -15,9 +15,29 @@
   ; ; en-passant
   ; (state/init-state [{:kind :pawn  :white [[5 4]] :black [[4 2]]}
   ;                    {:kind :king  :white [[1 1]] :black [[8 8]]}]))
-  ; castling
-  (state/init-state [{:kind :rook  :white [[1 8] [8 8]] :black [[1 1] [8 1]]}
-                     {:kind :king  :white [[5 8]] :black [[5 1]]}]))
+  ; ; castling
+  ; (state/init-state [{:kind :rook  :white [[1 8] [8 8]] :black [[1 1] [8 1]]}
+  ;                    {:kind :king  :white [[5 8]] :black [[5 1]]}])
+  ; dfs
+  (state/init-state [{:kind :king :white [[8 8]] :black [[1 1]]}
+                     {:kind :pawn 
+                      :white [[1 5]
+                              [2 5]
+                              [3 5]
+                              [4 5]
+                              [5 5]
+                              [6 5]
+                              [7 5]
+                              [8 5]] 
+                      :black [[1 4]
+                              [2 4]
+                              [3 4]
+                              [4 4]
+                              [5 4]
+                              [6 4]
+                              [7 4]
+                              [8 4]]}]))
+                                                    
 
 (defn make-move [from to state]
   (moves/move! from to state))
@@ -259,53 +279,50 @@
         (assoc-in [:board turn king-id :short-castling?] short-castling-open?)
         (assoc-in [:board turn king-id :long-castling?] long-castling-open?)
         (update-in [:board turn king-id :moves] (fn [s] (s/union s short-castling-move long-castling-move))))))
-          
+            
 
-(comment
-  "I need to check which squares are available for the kings to explore and if these sets have no
-  overlaps then it is a deadlock.
-  Some sort of graph traversal problem.
-  - start at start_node
-  - take next available node
-  - if it is seen, take next available node
-  - if there is no available nodes left then go back (use a stack)")
-
-(defn dfs 
-  "Pseudo code (taken from https://www.cs.toronto.edu/~heap/270F02/node36.html):
-  ---------------------------------------------------------------
-  DFS(G,v)   ( v is the vertex where the search starts )
-         Stack S := {};   ( start with an empty stack )
-         for each vertex u, set visited[u] := false;
-         push S, v;
-         while (S is not empty) do
-            u := pop S;
-            if (not visited[u]) then
-               visited[u] := true;
-               for each unvisited neighbour w of u
-                  push S, w;
-            end if
-         end while
-      END DFS()
-  "
-  [graph start neighbors-fn]
-  (loop [stack (list start)
+(defn dfs-with-state-update 
+  "DFS variation to be able to get all possible moves for a piece if all the other pieces are frozen"
+  [graph start neighbors-fn graph-update-fn]
+  (loop [g graph
+         stack (list start)
          visited #{}]
     (if (not (seq stack))
       visited
       (let [current (first stack)
-            visited? (fn [v] (visited v))]
+            visited? (fn [v] (visited v))
+            new-g (graph-update-fn g current)
+            ; _ (println current)
+            ; _ (println new-g)
+            ; _ (println visited)
+            _ (neighbors-fn new-g current)]
         (if (visited? current)
-          (recur (rest stack) visited)
+          (recur new-g (rest stack) visited)
           (recur 
-            (reduce conj stack (remove visited? (neighbors-fn graph current)))
+            new-g
+            (reduce conj stack (remove visited? (neighbors-fn new-g current)))
             (conj visited current)))))))
-            
 
-; TODO: implement pawn deadlock logic (dfs)
-(defn explore-board [{:keys [turn board] :as state} piece-id]
-  (let [pieces (turn board)
-        _ (assert (get pieces piece-id) (str "Piece " piece-id " not found"))]
-      nil))
+(defn explore-board [{:keys [board] :as state} color piece-id]
+  (let [state (refresh-state state)
+        pieces (color board)
+        _ (assert (get pieces piece-id) (str "Piece " piece-id " not found"))
+        start (get-in state [:board color piece-id :pos])
+        gf (fn [s pos] (let [from (get-in s [:board color piece-id :pos])
+                             to pos]
+                        (if (= to from)
+                          s
+                          (-> (make-move from to s)
+                              ; (switch-turn)
+                              (refresh-state)
+                              (filter-out-checked-moves)))))
+        nf (fn [g [x y]] (let [from (get-in g [:board color piece-id :pos])
+                               to [x y]
+                               new-state (gf g to)
+                               ns (get-in new-state [:board color piece-id :moves])]
+                          (vec ns)))]
+   (dfs-with-state-update state start nf gf)))
+
 
 (defn dead-position? [{:keys [turn board] :as state}]
   (let [white (:white board)
@@ -318,9 +335,16 @@
         hkk? (= piece-kinds `(:king :king :knight))
         insufficient-material? (or kk? bkk? hkk?)
         ; below is the deadlock related stuff
-        pawn-deadlock? true  ; FIXME
+        ;; TODO NEXT implement a check that all pawns cant move
+        all-pawns-deadlocked? true  ; FIXME
+        is-king-fn (fn [[_ piece]] (= (:piece piece) :king))
+        white-king-id (first (first (filter is-king-fn white)))
+        black-king-id (first (first (filter is-king-fn black)))
         deadlock? (and (= {:pawn :king} (set piece-kinds))
-                       pawn-deadlock?)]
+                       all-pawns-deadlocked?
+                       (= #{} (s/intersection  ; kings can never reach each other
+                                (explore-board state :white white-king-id)
+                                (explore-board state :black black-king-id))))]
     (or insufficient-material? deadlock?)))
 
 
@@ -453,17 +477,50 @@
      (get-in state [:board :white "king" :moves])))
 
   (mate? (init-game))
-  (let [[xmax ymax] [3 3]  ;; dfs test on a simple rect lattice with south/north/west/east moves
-        g (for [i (range xmax) j (range ymax)] [i j])
-        s [0 0]
-        f (fn [_ [x y]] (let [dxdy (for [i [-1 0 +1] j [-1 0 +1]] [i j])
-                              ns (for [[dx dy] dxdy
-                                       :let [[xnew ynew] [(+ x dx) (+ y dy)]]
-                                       :when (and
-                                               (not= (abs dx) (abs dy))
-                                               (< -1 xnew) (< xnew xmax)
-                                               (< -1 ynew) (< ynew ymax))] [xnew ynew])]
-                          ns))]
-                                       
-                                   
-   (dfs g s f)))
+
+  (defn dfs 
+    "Pseudo code (taken from https://www.cs.toronto.edu/~heap/270F02/node36.html):
+    ---------------------------------------------------------------
+    DFS(G,v)   ( v is the vertex where the search starts )
+           Stack S := {};   ( start with an empty stack )
+           for each vertex u, set visited[u] := false;
+           push S, v;
+           while (S is not empty) do
+              u := pop S;
+              if (not visited[u]) then
+                 visited[u] := true;
+                 for each unvisited neighbour w of u
+                    push S, w;
+              end if
+           end while
+        END DFS()
+    "
+    [graph start neighbors-fn]
+    (loop [stack (list start)
+           visited #{}]
+      (if (not (seq stack))
+        visited
+        (let [current (first stack)
+              visited? (fn [v] (visited v))]
+          (if (visited? current)
+            (recur (rest stack) visited)
+            (recur 
+              (reduce conj stack (remove visited? (neighbors-fn graph current)))
+              (conj visited current))))))
+    (let [[xmax ymax] [3 3]  ;; dfs test on a simple rect lattice with south/north/west/east moves
+          g (for [i (range xmax) j (range ymax)] [i j])
+          s [0 0]
+          gf (fn [g _] g)
+          nf (fn [_ [x y]] (let [dxdy (for [i [-1 0 +1] j [-1 0 +1]] [i j])
+                                 ns (for [[dx dy] dxdy
+                                          :let [[xnew ynew] [(+ x dx) (+ y dy)]]
+                                          :when (and
+                                                  (not= (abs dx) (abs dy))
+                                                  (< -1 xnew) (< xnew xmax)
+                                                  (< -1 ynew) (< ynew ymax))] [xnew ynew])]
+                             ns))]
+      (dfs g s nf))
+    
+    (let [s1 (explore-board (init-game) :white ":king:white:0")
+          s2 (explore-board (init-game) :black ":king:black:0")]
+      (s/intersection s1 s2))))
