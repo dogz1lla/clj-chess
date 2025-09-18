@@ -228,7 +228,68 @@
           (t/is (not (-> state
                          (g/switch-turn)
                          (g/refresh-state)
-                         (g/long-castling?)))))))))
+                         (g/long-castling?))))))))
+  (t/testing "game over states"
+    (t/testing "pawn deadlock"
+      (t/is (let [pieces [{:kind :pawn 
+                           :white [[1 5]]
+                           :black [[1 4]]}]
+                  state (-> pieces
+                            (s/init-state)
+                            (g/refresh-state))]
+              (g/pawn-deadlock? state))))
+    (t/testing "pawn deadlock? not really, there is an attack"
+      (t/is (not (let [pieces [{:kind :pawn 
+                                :white [[1 5] [2 5]]
+                                :black [[1 4] [2 4]]}]
+                       state (-> pieces
+                                 (s/init-state)
+                                 (g/refresh-state))]
+                   (g/pawn-deadlock? state)))))
+    (t/testing "pawn deadlock? yep"
+      (t/is (let [pieces [{:kind :pawn 
+                           :white [[1 5] [3 5]]
+                           :black [[1 4] [3 4]]}]
+                  state (-> pieces
+                            (s/init-state)
+                            (g/refresh-state))]
+              (g/pawn-deadlock? state))))
+    (t/testing "insufficient material, two kings"
+      (t/is (let [pieces [{:kind :king :white [[1 8]] :black [[1 1]]}]
+                  state (-> pieces
+                            (s/init-state)
+                            (g/refresh-state))]
+              (g/insufficient-material? state))))
+    (t/testing "insufficient material, two kings and a bishop"
+      (t/is (let [pieces [{:kind :king :white [[1 8]] :black [[1 1]]}
+                          {:kind :bishop :white [] :black [[3 1]]}]
+                  state (-> pieces
+                            (s/init-state)
+                            (g/refresh-state))]
+              (g/insufficient-material? state))))
+    (t/testing "insufficient material, two kings and a knight"
+      (t/is (let [pieces [{:kind :king :white [[1 8]] :black [[1 1]]}
+                          {:kind :knight :white [] :black [[3 1]]}]
+                  state (-> pieces
+                            (s/init-state)
+                            (g/refresh-state))]
+              (g/insufficient-material? state))))
+    (t/testing "sufficient material: two kings and two knights"
+      (t/is (not (let [pieces [{:kind :king :white [[1 8]] :black [[1 1]]}
+                               {:kind :knight :white [] :black [[3 1] [5 1]]}]
+                       state (-> pieces
+                                 (s/init-state)
+                                 (g/refresh-state))]
+                   (g/insufficient-material? state)))))
+    (t/testing "dead position"
+      (t/is (let [pieces [{:kind :king :white [[1 8]] :black [[1 1]]}
+                          {:kind :pawn
+                           :white [[1 5] [3 5] [5 5] [7 5]]
+                           :black [[1 4] [3 4] [5 4] [7 4]]}]
+                  state (-> pieces
+                            (s/init-state)
+                            (g/refresh-state))]
+              (g/dead-position? state))))))
               
 
 (t/run-tests)

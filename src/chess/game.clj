@@ -19,24 +19,28 @@
   ; (state/init-state [{:kind :rook  :white [[1 8] [8 8]] :black [[1 1] [8 1]]}
   ;                    {:kind :king  :white [[5 8]] :black [[5 1]]}])
   ; dfs
-  (state/init-state [{:kind :king :white [[8 8]] :black [[1 1]]}
-                     {:kind :pawn 
-                      :white [[1 5]
-                              [2 5]
-                              [3 5]
-                              [4 5]
-                              [5 5]
-                              [6 5]
-                              [7 5]
-                              [8 5]] 
-                      :black [[1 4]
-                              [2 4]
-                              [3 4]
-                              [4 4]
-                              [5 4]
-                              [6 4]
-                              [7 4]
-                              [8 4]]}]))
+  (state/init-state [{:kind :king :white [[1 8]] :black [[1 1]]}
+                     {:kind :pawn
+                      :white [[1 5] [3 5] [5 5] [7 5]]
+                      :black [[1 4] [3 4] [5 4] [7 4]]}]))
+                     ; {:kind :king :white [[8 8]] :black [[1 1]]}
+                     ; {:kind :pawn 
+                     ;  :white [[1 5]
+                     ;          [2 5]
+                     ;          [3 5]
+                     ;          [4 5]
+                     ;          [5 5]
+                     ;          [6 5]
+                     ;          [7 5]
+                     ;          [8 5]] 
+                     ;  :black [[1 4]
+                     ;          [2 4]
+                     ;          [3 4]
+                     ;          [4 4]
+                     ;          [5 4]
+                     ;          [6 4]
+                     ;          [7 4]
+                     ;          [8 4]]}]))
                                                     
 
 (defn make-move [from to state]
@@ -291,11 +295,7 @@
       visited
       (let [current (first stack)
             visited? (fn [v] (visited v))
-            new-g (graph-update-fn g current)
-            ; _ (println current)
-            ; _ (println new-g)
-            ; _ (println visited)
-            _ (neighbors-fn new-g current)]
+            new-g (graph-update-fn g current)]
         (if (visited? current)
           (recur new-g (rest stack) visited)
           (recur 
@@ -303,8 +303,11 @@
             (reduce conj stack (remove visited? (neighbors-fn new-g current)))
             (conj visited current)))))))
 
-(defn explore-board [{:keys [board] :as state} color piece-id]
-  (let [state (refresh-state state)
+
+(defn explore-board [{:keys [board turn] :as state} color piece-id]
+  (let [state (refresh-state (cond
+                               (= turn color) state
+                               (not= turn color) (switch-turn state)))
         pieces (color board)
         _ (assert (get pieces piece-id) (str "Piece " piece-id " not found"))
         start (get-in state [:board color piece-id :pos])
@@ -313,7 +316,6 @@
                         (if (= to from)
                           s
                           (-> (make-move from to s)
-                              ; (switch-turn)
                               (refresh-state)
                               (filter-out-checked-moves)))))
         nf (fn [g [x y]] (let [from (get-in g [:board color piece-id :pos])
@@ -324,7 +326,18 @@
    (dfs-with-state-update state start nf gf)))
 
 
-(defn dead-position? [{:keys [turn board] :as state}]
+(defn pawn-deadlock? [{:keys [turn board] :as state}]
+  (let [white (:white board)
+        black (:black board)
+        all-pieces (into black white)
+        all-pieces (map second all-pieces)
+        is-pawn-fn (fn [piece] (= (:piece piece) :pawn))
+        pawns (filter is-pawn-fn all-pieces)
+        cant-move? (fn [{:keys [moves attacks]}] (and (empty? moves) (empty? attacks)))]
+    (every? cant-move? pawns)))
+  
+
+(defn insufficient-material? [{:keys [turn board] :as state}]
   (let [white (:white board)
         black (:black board)
         all-pieces (into black white)
@@ -332,20 +345,28 @@
         piece-kinds (sort (map :piece all-pieces))
         kk?  (= piece-kinds `(        :king :king))
         bkk? (= piece-kinds `(:bishop :king :king))
-        hkk? (= piece-kinds `(:king :king :knight))
-        insufficient-material? (or kk? bkk? hkk?)
+        hkk? (= piece-kinds `(:king :king :knight))]
+    (or kk? bkk? hkk?)))
+
+
+(defn dead-position? [{:keys [turn board] :as state}]
+  (let [white (:white board)
+        black (:black board)
+        all-pieces (into black white)
+        all-pieces (map second all-pieces)
+        piece-kinds (sort (map :piece all-pieces))
         ; below is the deadlock related stuff
-        ;; TODO NEXT implement a check that all pawns cant move
-        all-pawns-deadlocked? true  ; FIXME
         is-king-fn (fn [[_ piece]] (= (:piece piece) :king))
         white-king-id (first (first (filter is-king-fn white)))
         black-king-id (first (first (filter is-king-fn black)))
-        deadlock? (and (= {:pawn :king} (set piece-kinds))
-                       all-pawns-deadlocked?
-                       (= #{} (s/intersection  ; kings can never reach each other
+        ; _ (println (explore-board state :white white-king-id))
+        ; _ (println (explore-board state :black black-king-id))
+        deadlock? (and (= #{:pawn :king} (set piece-kinds))
+                       (pawn-deadlock? state)
+                       (empty? (s/intersection  ; kings can never reach each other
                                 (explore-board state :white white-king-id)
                                 (explore-board state :black black-king-id))))]
-    (or insufficient-material? deadlock?)))
+    (or (insufficient-material? state) deadlock?)))
 
 
 (defn game-over? [state]
@@ -523,4 +544,5 @@
     
     (let [s1 (explore-board (init-game) :white ":king:white:0")
           s2 (explore-board (init-game) :black ":king:black:0")]
-      (s/intersection s1 s2))))
+      (s/intersection s1 s2))
+    (dead-position? (refresh-state (init-game)))))
