@@ -359,8 +359,6 @@
         is-king-fn (fn [[_ piece]] (= (:piece piece) :king))
         white-king-id (first (first (filter is-king-fn white)))
         black-king-id (first (first (filter is-king-fn black)))
-        ; _ (println (explore-board state :white white-king-id))
-        ; _ (println (explore-board state :black black-king-id))
         deadlock? (and (= #{:pawn :king} (set piece-kinds))
                        (pawn-deadlock? state)
                        (empty? (s/intersection  ; kings can never reach each other
@@ -416,9 +414,9 @@
                                            (promote-pawn state pawn-id piece)))
               next-state (refresh-state next-state)]
           (if (game-over? next-state)
-            (do
+            (let [final-state (assoc next-state :game-over true)]
               (println "Checkmate!")
-              (async/>! c-out next-state))  ; FIXME return something more meaningful
+              (async/>! c-out final-state))
             (do
               (let [next-state (if (= msg-type :promote-pawn)
                                  next-state                 ; if pawn promotion -> no turn switch

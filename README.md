@@ -44,10 +44,10 @@ Chess implementation in clojure. Game rendering via [quil](https://github.com/qu
     + [x] fn that adds castling squares to the moves of the king
     + [x] move! fn needs to somehow know that a move is a castling move and that it needs to move
     the rook too;
-- [ ] implement draw
+- [x] implement draw
     + [x] stalemate
-    + [ ] dead positions
-- [ ] game over functionality
+    + [x] dead positions
+- [x] game over functionality
 
 # BONUS TODOs
 - [ ] multiplayer over web

@@ -283,7 +283,14 @@
               (async/>!! in msg)
               (reset! game-state (async/<!! out)))
             (reset! pawn-promotion? nil)))
-        (render-promotion-choices :white 300 350 cell-size)))))
+        (render-promotion-choices :white 300 350 cell-size))
+
+      (when (:game-over @game-state)
+        (q/fill 255 255 255)
+        (q/rect 100 100 1000 600)
+        (q/fill 0 0 0)
+        (q/text "GAME OVER" 300 300)))))
+
 
 (q/defsketch chess-game
   :title "tetris"
